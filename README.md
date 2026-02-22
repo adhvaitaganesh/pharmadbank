@@ -79,7 +79,10 @@ In order to build this project, you will first have to install:
 - The latest version of Node.js: https://nodejs.org/en/download/
 - You can run `sudo apt update` then `sudo apt install nodejs npm`
 - See [here](https://linuxize.com/post/how-to-install-node-js-on-ubuntu-20-04/)
-- The latest version of Python: https://www.python.org/downloads/
+- Recommended workflow- Install pyenv (https://github.com/pyenv/pyenv) - and then install python 3.10 by running `pyenv install 3.10` - and then (I recommend) `pyenv global 3.10`
+- This will let you switch between Python versions. *Do not forget to install build dependencies when installing pyenv from source*
+  #OR
+- Python 3.10.x : https://www.python.org/downloads/
 - You can run `sudo apt update` then `sudo apt install python3`
 - See [here](https://www.makeuseof.com/install-python-ubuntu/)
 
@@ -151,3 +154,4 @@ If you use this service and would like to cite it (please do!), you can use the 
 
 ### Support ❤️
 - DataDock is an ambitious project. As such, there are many things that can be added. Please feel free to open an issue for something you think may be useful. This is intended to be a community project.
+
