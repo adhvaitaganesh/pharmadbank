@@ -9,7 +9,7 @@ const Dataset = (props) => {
 
   const clickDelete = () => {
     const dialog = window.confirm(
-      "Would you like to delete this file? There is no going back."
+      "Would you like to delete this file? There is no going back.",
     );
     if (dialog) {
       props.deleteDataset(props.data.id);
@@ -27,43 +27,47 @@ const Dataset = (props) => {
         <div>
           <p>
             <Link to={`/profile/${props.data.author_username}`}>
-              {props.data.author_username}
-            </Link>
-            -{props.data.formatted_date}
-          </p>
-        </div>
-      </div>
+              {" "}
+              {props.data.author_username}{" "}
+            </Link>{" "}
+            -{props.data.formatted_date}{" "}
+          </p>{" "}
+        </div>{" "}
+      </div>{" "}
       <div>
-        <h4>Dataset Name: {props.data.name}</h4>
-        <small>Download count: {props.data.download_count}</small>
-        <hr />
-        <div>{props.data.description}</div>
-      </div>
+        <h4> Dataset Name: {props.data.name} </h4>{" "}
+        <small> Download count: {props.data.download_count} </small> <hr />
+        <div> {props.data.description} </div>{" "}
+      </div>{" "}
       <div className="mt-3">
-        <h6>Tags</h6>
+        <h6> Tags </h6>{" "}
         <div className="mb-2">
+          {" "}
           {props.data.tags.map((objTag, index) => (
             <div className={tag_styles.tag_item} key={index}>
-              <span className={tag_styles.text}>{objTag.text}</span>
+              <span className={tag_styles.text}> {objTag.text} </span>{" "}
             </div>
-          ))}
-        </div>
-      </div>
+          ))}{" "}
+        </div>{" "}
+      </div>{" "}
       {props.auth.user.id === props.data.author && (
         <div className="d-flex justify-content-between mt-3">
           <div>
-            <Link to={`/datasets/${props.data.id}/edit`} className="btn btn-primary me-2">
-              Edit
-            </Link>
+            <Link
+              to={`/datasets/${props.data.id}/edit`}
+              className="btn btn-primary me-2"
+            >
+              Edit{" "}
+            </Link>{" "}
             <button className="btn btn-success" onClick={clickDownload}>
-              Download
-            </button>
-          </div>
+              Download source file{" "}
+            </button>{" "}
+          </div>{" "}
           <button onClick={clickDelete} className="btn btn-danger">
-            Delete
-          </button>
+            Delete{" "}
+          </button>{" "}
         </div>
-      )}
+      )}{" "}
     </div>
   );
 };
@@ -73,5 +77,5 @@ const mapStateToProps = (state) => ({
 });
 
 export default connect(mapStateToProps, { deleteDataset, downloadDataset })(
-  Dataset
+  Dataset,
 );

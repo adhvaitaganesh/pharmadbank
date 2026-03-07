@@ -85,12 +85,11 @@ const Dashboard = (props) => {
   return (
     <div className="container">
       <h1>
-        Welcome back <strong>{props.auth.user.username}</strong>.
-      </h1>
-      <h3>Here's what you've missed.</h3>
-
+        Welcome back <strong> {props.auth.user.username} </strong>.{" "}
+      </h1>{" "}
+      <h3> Here 's what you' ve missed. </h3>
       <div>
-        <h5>Recent News in Delta</h5>
+        <h5> Recent News in Delta </h5>{" "}
         {arrNotificationNews.length != 0 ? (
           <div
             className="box shadow-sm rounded bg-light mb-3 border border-gray"
@@ -106,20 +105,19 @@ const Dashboard = (props) => {
                   <NotificationNews
                     parentRemoveNotif={removeNotificationNews}
                     notif={data}
-                  />
+                  />{" "}
                 </SwiperSlide>
-              ))}
-            </Swiper>
+              ))}{" "}
+            </Swiper>{" "}
           </div>
         ) : (
           <div>
-            <p>Looks like you're all caught up. Well done!</p>
+            <p> Looks like you 're all caught up. Well done!</p>{" "}
           </div>
-        )}
+        )}{" "}
       </div>
-
       <div>
-        <h5>Whats Hot in Delta</h5>
+        <h5> Whats Hot in Delta </h5>{" "}
         {arrNotificationWhatsHot.length != 0 ? (
           <div
             className="box shadow-sm rounded bg-light mb-3 border border-gray"
@@ -135,17 +133,17 @@ const Dashboard = (props) => {
                   <NotificationWhatsHot
                     parentRemoveNotif={removeNotificationWhatsHot}
                     notif={data}
-                  />
+                  />{" "}
                 </SwiperSlide>
-              ))}
-            </Swiper>
+              ))}{" "}
+            </Swiper>{" "}
           </div>
         ) : (
           <div>
-            <p>Looks like you're all caught up. Well done!</p>
+            <p> Looks like you 're all caught up. Well done!</p>{" "}
           </div>
-        )}
-      </div>
+        )}{" "}
+      </div>{" "}
     </div>
   );
 };
