@@ -28,7 +28,11 @@ const DataDownload = (props) =>{
 
     // UTILITY: Grabs all public csv files
     const getCsvs = () =>{
-        axios.get('/api/public_datasets/',{headers:{'Content-Type':'application/json','Authorization':`Token ${props.auth.token}`}})
+        const headers = {'Content-Type':'application/json'};
+        if (props.auth?.token) {
+            headers['Authorization'] = `Token ${props.auth.token}`;
+        }
+        axios.get('/api/public_datasets/', { headers })
         .then(res=>{
         setDataSets(res.data);
         })

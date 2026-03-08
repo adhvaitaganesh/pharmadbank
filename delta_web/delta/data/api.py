@@ -15,7 +15,8 @@ import json
 
 # import necessary models
 from django.http import FileResponse,HttpResponse
-from .models import (DataSet, TagDataset,File,Folder)
+from .models import (DataSet, TagDataset,File,Folder,UserDownload)
+from .permissions import user_can_access_dataset, CanAccessDataSet
 from rest_framework import status,renderers
 from rest_framework.decorators import action
 
@@ -39,6 +40,7 @@ from rest_framework import viewsets, permissions
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.parsers import FileUploadParser, MultiPartParser
+from django.db.models import Q
 
 # import orgs
 from organizations.models import Organization
@@ -91,20 +93,44 @@ class ViewsetFolder(viewsets.ModelViewSet):
 class ViewsetPublicDataSet(viewsets.ModelViewSet):
     queryset = DataSet.objects.all()
 
-    permission_classes = [
-        # permissions.IsAuthenticated
-    ]
+    # list/retrieve are intentionally open so unauthenticated users can
+    # browse/discover public dataset metadata (e.g. search page).
+    # The download action enforces authentication separately.
+    permission_classes = []
 
     serializer_class = SerializerDataSet
 
     def get_queryset(self):
-        return DataSet.objects.filter(is_public=True)
+        user = self.request.user
+        if not user or not user.is_authenticated:
+            return DataSet.objects.filter(is_public=True)
+
+        # For authenticated users, "Find" should include:
+        # 1) all public datasets
+        # 2) user's own datasets (including private)
+        # 3) org-visible datasets in organizations the user follows
+        user_orgs = user.followed_organizations.all()
+        return DataSet.objects.filter(
+            Q(is_public=True) |
+            Q(author=user) |
+            Q(is_public_orgs=True, registered_organizations__in=user_orgs)
+        ).distinct()
 
     @action(methods=['get'],detail=True,renderer_classes=(PassthroughRenderer,))
-    def download(self,*args,**kwargs):
+    def download(self, request, *args, **kwargs):
+        # Downloading always requires authentication
+        if not request.user or not request.user.is_authenticated:
+            return HttpResponse(status=401)
+
         instance = self.get_object()
 
+        if not user_can_access_dataset(request.user, instance):
+            return HttpResponse(status=403)
+
         zip_file_path = instance.get_zip_path()
+
+        # Record the download (ignore if already exists)
+        UserDownload.objects.get_or_create(user=request.user, dataset=instance)
 
         # increase the download count
         instance.download_count += 1
@@ -290,13 +316,15 @@ class ViewsetDataSet(viewsets.ModelViewSet):
     
         return Response(self.get_serializer(obj).data)
     
-    def retrieve(self,request,*args,**kwargs):
+    def retrieve(self, request, *args, **kwargs):
         obj_id = kwargs['pk']
         obj = DataSet.objects.get(id=obj_id)
-        # ONLY ALLOW USER TO SEE FILE IF THE FOLLOWING CONDITIONS ARE MEET
-        # 1. DataSet is public OR
-        # 2. User owns file OR
-        # 3. User is part of org with file
+        # Allow access if:
+        # 1. DataSet is public, OR
+        # 2. User owns the dataset, OR
+        # 3. User is a member of one of the dataset's registered organizations
+        if not user_can_access_dataset(request.user, obj):
+            return Response({"detail": "You do not have permission to access this dataset."}, status=status.HTTP_403_FORBIDDEN)
         serialized = self.get_serializer(obj)
         return Response(serialized.data)
 

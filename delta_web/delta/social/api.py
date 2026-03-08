@@ -17,6 +17,7 @@ SerializerConversation,SerializerMessage,SerializerNotificationMessage,
 SerializerNotificationWhatsHot,SerializerNotificationNews
 )
 from data.models import DataSet
+from data.permissions import user_can_access_dataset
 
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -57,6 +58,8 @@ class ViewsetReview(viewsets.ModelViewSet):
         modelCsvDataSet = DataSet.objects.get(pk=self.request.data['dataset'])
         if self.request.user == modelCsvDataSet.author:
             raise SamePersonReviewError()
+        if not user_can_access_dataset(self.request.user, modelCsvDataSet):
+            raise PermissionDenied("You do not have permission to review this dataset.")
         modelReview = serializer.save(author=self.request.user, dataset=modelCsvDataSet)
         # create Notification
         reviewText = self.request.data["text"]
@@ -68,8 +71,11 @@ class ViewsetReview(viewsets.ModelViewSet):
         return Response(self.serializer_class(modelReview).data)
 
     # get an instance of an object
-    def retrieve(self,request,pk=None):
-        return Response(self.serializer_class(Review.objects.get(pk=pk)).data)
+    def retrieve(self, request, pk=None):
+        review = Review.objects.get(pk=pk)
+        if not user_can_access_dataset(request.user, review.dataset):
+            raise PermissionDenied("You do not have permission to view this review.")
+        return Response(self.serializer_class(review).data)
 
     # update an object
     def partial_update(self,request,*args,**kwargs):

@@ -73,6 +73,7 @@ class CustomRedirect(HttpResponsePermanentRedirect):
 # Used to register new users.
 # To register new users, hit the endpoint given in this folder's `urls.py` using a POST method.
 class RegisterAPI(generics.GenericAPIView):
+    permission_classes = []  # public: no token needed to register
     serializer_class = RegisterSerializer
 
     # Handling post request
@@ -96,14 +97,18 @@ class RegisterAPI(generics.GenericAPIView):
         # Both the organization name and key must match.
         organization_name = request.data.get('organization_name')
         organization_key = request.data.get("organization_key")
-        
-        try:
-            modelOrg = Organization.objects.get(name=organization_name, key=organization_key)
-            modelOrg.following_users.add(user)
-            modelOrg.save()
-        except ObjectDoesNotExist:
-            # Handle the case where no matching organization is found
-            print("No matching organization found.")
+        org_join_message = ""
+        if organization_name or organization_key:
+            if not organization_name or not organization_key:
+                org_join_message = "Organization join skipped: both organization name and key are required."
+            else:
+                try:
+                    modelOrg = Organization.objects.get(name=organization_name, key=organization_key)
+                    modelOrg.following_users.add(user)
+                    modelOrg.save()
+                    org_join_message = f"Joined organization {organization_name}."
+                except ObjectDoesNotExist:
+                    org_join_message = "Organization join skipped: invalid organization name or key."
         ######
         # Create notifications for the new users.
         #
@@ -151,12 +156,14 @@ class RegisterAPI(generics.GenericAPIView):
             # send the token so you can login immediately
             # create token specific for that user
             # AuthToken returns a tuple, need the second item
-            "token":AuthToken.objects.create(user)[1]
+            "token":AuthToken.objects.create(user)[1],
+            "organization_join_message": org_join_message
         })
 
 # Login API
-# Used to login existing user 
+# Used to login existing user
 class LoginAPI(generics.GenericAPIView):
+    permission_classes = []  # public: no token needed to login
     serializer_class = LoginSerializer
 
     def post(self,request,*args, **kwargs):
@@ -260,22 +267,23 @@ class UpdateAPI(generics.UpdateAPIView):
         # then we add the user back.
         # NOTE: you could check to see if the qsOrg elements are similar to request.user.followed_organizations.all()
         # from there, you can see if you need to actually remove the user or not.
-        qsOrgs = []
-        for orgJson in request.data.get('organizations'):
-            orgObj = Organization.objects.get(pk=orgJson['id'])
-            if(orgObj in request.user.followed_organizations.all()):
-                # then have authority to remove or add
-                qsOrgs.append(Organization.objects.get(pk=orgJson['id']))
-        
-        # clear user orgs
-        for orgObj in request.user.followed_organizations.all():
-            orgObj.following_users.remove(request.user)
-            orgObj.save()
-        
-        # then reupdate the orgs
-        for orgObj in qsOrgs:
-            orgObj.following_users.add(request.user)
-            orgObj.save()
+        if request.data.get('organizations') is not None:
+            qsOrgs = []
+            for orgJson in request.data.get('organizations'):
+                orgObj = Organization.objects.get(pk=orgJson['id'])
+                if(orgObj in request.user.followed_organizations.all()):
+                    # then have authority to remove or add
+                    qsOrgs.append(Organization.objects.get(pk=orgJson['id']))
+            
+            # clear user orgs
+            for orgObj in request.user.followed_organizations.all():
+                orgObj.following_users.remove(request.user)
+                orgObj.save()
+            
+            # then reupdate the orgs
+            for orgObj in qsOrgs:
+                orgObj.following_users.add(request.user)
+                orgObj.save()
 
         # check for new organizations
         # using the new org key
@@ -407,6 +415,7 @@ class ViewsetCartItem(viewsets.ModelViewSet):
 # Used to reset email
 # (At the moment does not work: 06/25/2024)
 class PasswordTokenCheckAPI(generics.GenericAPIView):
+    permission_classes = []  # public: user is not logged in when checking reset token
     serializer_class = SetNewPasswordSerializer
 
     def get(self, request, uidb64, token):
@@ -439,6 +448,7 @@ class PasswordTokenCheckAPI(generics.GenericAPIView):
 # Used to reset email
 # (At the moment does not work: 06/25/2024)
 class RequestPasswordResetEmail(generics.GenericAPIView):
+    permission_classes = []  # public: user is not logged in when resetting password
     serializer_class = ResetPasswordEmailRequestSerializer
 
     def post(self, request):
@@ -470,5 +480,6 @@ class RequestPasswordResetEmail(generics.GenericAPIView):
 # Used to reset email
 # (At the moment does not work: 06/25/2024)
 class PasswordTokenCheckAPIView(generics.GenericAPIView):
+    permission_classes = []  # public: user is not logged in when verifying reset token
     def get(self,request,uidb64,token):
         pass

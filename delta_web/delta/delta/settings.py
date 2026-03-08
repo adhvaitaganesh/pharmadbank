@@ -81,7 +81,11 @@ INSTALLED_APPS = [
 ]
 
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES':('knox.auth.TokenAuthentication',)
+    'DEFAULT_AUTHENTICATION_CLASSES': ('knox.auth.TokenAuthentication',),
+    # All endpoints require authentication by default.
+    # Endpoints that should be publicly accessible must explicitly set
+    # permission_classes = [] or AllowAny on the view.
+    'DEFAULT_PERMISSION_CLASSES': ('rest_framework.permissions.IsAuthenticated',),
 }
 
 MIDDLEWARE = [

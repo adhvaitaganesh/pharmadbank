@@ -21,11 +21,14 @@ class OrganizationSerializer(serializers.ModelSerializer):
     # extra fields
     following_user_count = serializers.SerializerMethodField()
     date_us_format = serializers.SerializerMethodField()
+    is_owner = serializers.SerializerMethodField()
+    author_username = serializers.SerializerMethodField()
 
     class Meta:
         model = Organization
         fields = [
-            'timestamp','name','id','following_user_count',"description","date_us_format"
+            'timestamp', 'name', 'id', 'following_user_count', 'description',
+            'date_us_format', 'is_owner', 'author_username'
         ]
 
     # UTILITY: Gets the follow count of users for an organization
@@ -39,3 +42,14 @@ class OrganizationSerializer(serializers.ModelSerializer):
     # OUTPUT: Formatted date
     def get_date_us_format(self,obj):
         return obj.timestamp.date()
+
+    def get_is_owner(self, obj):
+        request = self.context.get('request')
+        if not request or not request.user or not request.user.is_authenticated:
+            return False
+        return obj.author_id == request.user.id
+
+    def get_author_username(self, obj):
+        if not obj.author:
+            return None
+        return obj.author.username

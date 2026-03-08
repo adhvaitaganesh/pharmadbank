@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { connect } from 'react-redux';
-import { updateUser } from "../../actions/auth";
-import OrganizationThumbnail from './OrganizationThumbnail';
+import { updateUser, loadUser } from "../../actions/auth";
+import { joinOrganization, leaveOrganization } from "../../actions/organization";
 
 const ProfileForm = (props) => {
   if (!props.auth.user.username) return null;
@@ -13,7 +13,6 @@ const ProfileForm = (props) => {
     email: props.auth.user.email,
     bio: props.auth.user.bio,
     password: "",
-    organizations: props.auth.user.followed_organizations,
     org_key: "",
     org_name:''
   });
@@ -22,23 +21,28 @@ const ProfileForm = (props) => {
     setUserInfo({ ...userInfo, [e.target.name]: e.target.value });
   };
 
-  const parentOnRemoveOrg = (orgObj) => {
-    setUserInfo({
-      ...userInfo,
-      organizations: userInfo.organizations.filter((item) => item !== orgObj)
-    });
-  };
-
-  const parentOnPutBackOrg = (orgObj) => {
-    setUserInfo({
-      ...userInfo,
-      organizations: [...userInfo.organizations, orgObj]
-    });
-  };
-
   const onSubmit = (e) => {
     e.preventDefault();
     props.updateUser(userInfo);
+  };
+
+  const onJoinOrg = (e) => {
+    e.preventDefault();
+    if (!userInfo.org_name || !userInfo.org_key) {
+      return;
+    }
+    props.joinOrganization(userInfo.org_name, userInfo.org_key)
+      .then(() => {
+        setUserInfo({ ...userInfo, org_name: "", org_key: "" });
+        props.loadUser();
+      })
+      .catch(() => {});
+  };
+
+  const onLeaveOrg = (orgId) => {
+    props.leaveOrganization(orgId)
+      .then(() => props.loadUser())
+      .catch(() => {});
   };
 
   return (
@@ -126,12 +130,15 @@ const ProfileForm = (props) => {
             ) : (
               <div className="row">
                 {props.auth.user.followed_organizations.map((orgObj, index) => (
-                  <div className="col-md-6 mb-3" key={index}>
-                    <OrganizationThumbnail
-                      org={orgObj}
-                      parentOnPutBackOrg={parentOnPutBackOrg}
-                      parentOnRemoveOrg={parentOnRemoveOrg}
-                    />
+                  <div className="col-md-12 mb-2 d-flex justify-content-between border p-2" key={index}>
+                    <span>{orgObj.name}</span>
+                    <button
+                      type="button"
+                      className="btn btn-outline-danger btn-sm"
+                      onClick={() => onLeaveOrg(orgObj.id)}
+                    >
+                      Leave
+                    </button>
                   </div>
                 ))}
               </div>
@@ -161,6 +168,11 @@ const ProfileForm = (props) => {
               All organizations have a secret key; admins of the organizations will provide the key to you if you
               are supposed to be in the organization.
             </small>
+            <div className="mt-2">
+              <button className="btn btn-outline-primary btn-sm" type="button" onClick={onJoinOrg}>
+                Join Organization
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -175,4 +187,9 @@ const mapStateToProps = (state) => ({
   auth: state.auth
 });
 
-export default connect(mapStateToProps, { updateUser })(ProfileForm);
+export default connect(mapStateToProps, {
+  updateUser,
+  loadUser,
+  joinOrganization,
+  leaveOrganization,
+})(ProfileForm);

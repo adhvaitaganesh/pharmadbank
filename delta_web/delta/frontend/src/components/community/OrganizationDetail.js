@@ -74,27 +74,81 @@ const IconBack = styled(FaChevronLeft)`
 const OrganizationDetail = (props) => {
   const [data, setData] = useState(null);
   const [dataPosts, setDataPosts] = useState(null);
+  const [members, setMembers] = useState([]);
+  const [memberUsername, setMemberUsername] = useState('');
+  const [memberMsg, setMemberMsg] = useState('');
+  const [orgKey, setOrgKey] = useState('');
   const { id } = useParams();
+  const headers = { 'Content-Type': 'application/json' };
+  if (props.auth?.token) {
+    headers['Authorization'] = `Token ${props.auth.token}`;
+  }
 
   const getData = () => {
-    axios.get(`/api/organization/${id}/`)
+    axios.get(`/api/organization/${id}/`, { headers })
       .then((res) => {
         setData(res.data);
       })
   }
 
   const getPosts = () => {
-    axios.get(`/api/organization/${id}/data_posts/`, { headers: { 'Content-Type': 'application/json', 'Authorization': `Token ${props.auth.token}` } })
+    axios.get(`/api/organization/${id}/data_posts/`, { headers })
       .then((res) => {
         console.log(res)
         setDataPosts(res.data);
       })
   }
 
+  const getMembers = () => {
+    axios.get(`/api/organization/${id}/members/`, { headers })
+      .then((res) => setMembers(res.data.members || []))
+      .catch(() => setMembers([]));
+  };
+
+  const getOrgKey = () => {
+    axios.get(`/api/organization/${id}/key/`, { headers })
+      .then((res) => setOrgKey(res.data.key || ''))
+      .catch((err) => {
+        setMemberMsg(err?.response?.data?.detail || 'Failed to get key.');
+      });
+  };
+
+  const addMember = (e) => {
+    e.preventDefault();
+    setMemberMsg('');
+    axios.post(`/api/organization/${id}/members/add/`, { username: memberUsername }, { headers })
+      .then((res) => {
+        setMemberMsg(res.data.detail || 'Member added.');
+        setMemberUsername('');
+        getMembers();
+      })
+      .catch((err) => {
+        setMemberMsg(err?.response?.data?.detail || 'Failed to add member.');
+      });
+  };
+
+  const removeMember = (username) => {
+    setMemberMsg('');
+    axios.post(`/api/organization/${id}/members/remove/`, { username }, { headers })
+      .then((res) => {
+        setMemberMsg(res.data.detail || 'Member removed.');
+        getMembers();
+      })
+      .catch((err) => {
+        setMemberMsg(err?.response?.data?.detail || 'Failed to remove member.');
+      });
+  };
+
   useEffect(() => {
     getData();
     getPosts();
   }, []);
+
+  useEffect(() => {
+    if (data?.is_owner) {
+      getMembers();
+    }
+  }, [data?.is_owner]);
 
   if (data == null || dataPosts == null) return <div data-testid="organization_detail-1"></div>;
 
@@ -124,6 +178,48 @@ const OrganizationDetail = (props) => {
       <h4>All files under this organization</h4>
       <small>When you upload a file, you can set it to be under any of the organizations you are also a part of.</small>
       <DataSetTable dataSets={dataPosts} textMinLength={3} />
+      {data?.is_owner && (
+        <div className="mt-4">
+          <h4>Owner Management</h4>
+          <button className="btn btn-outline-secondary btn-sm mb-2" onClick={getOrgKey}>
+            Show Organization Key
+          </button>
+          {orgKey && <div className="mb-2"><code>{orgKey}</code></div>}
+          <form onSubmit={addMember} className="mb-3">
+            <label className="form-label">Add member by username</label>
+            <input
+              className="form-control"
+              value={memberUsername}
+              onChange={(e) => setMemberUsername(e.target.value)}
+              placeholder="username"
+            />
+            <button className="btn btn-primary btn-sm mt-2" type="submit">Add</button>
+          </form>
+          {memberMsg && <div className="mb-2">{memberMsg}</div>}
+          <div>
+            <strong>Members</strong>
+            {members.length === 0 ? (
+              <div>No members found.</div>
+            ) : (
+              members.map((member) => (
+                <div key={member.id} className="d-flex justify-content-between align-items-center border p-2 my-1">
+                  <span>
+                    {member.username} {member.is_owner ? '(owner)' : ''}
+                  </span>
+                  {!member.is_owner && (
+                    <button
+                      className="btn btn-outline-danger btn-sm"
+                      onClick={() => removeMember(member.username)}
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
       <BackButton to="/community/organizations">
         <IconBack />
         Back to Organizations

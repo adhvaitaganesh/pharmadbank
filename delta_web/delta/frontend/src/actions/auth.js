@@ -120,6 +120,9 @@ export const register = ({ username, first_name, last_name, password, email,orga
                 payload: res.data
             });
             dispatch(createMessage({registerUser: msg}))
+            if (res.data.organization_join_message) {
+                dispatch(createMessage({registerOrganizationStatus: res.data.organization_join_message}))
+            }
         })
         // if we are not authenticated, no token that matches, need to catch
         .catch((err) => {
