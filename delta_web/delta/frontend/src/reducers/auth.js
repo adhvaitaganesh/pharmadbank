@@ -25,9 +25,21 @@ import {
     USER_UPDATE_SUCCESS
 } from "../actions/types"
 
+const TOKEN_KEY = 'token';
+const USER_KEY = 'user';
+
+const clearLegacySharedAuth = () => {
+    // Never read token from localStorage: it is shared across tabs.
+    // We only clear old values left by previous builds.
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(USER_KEY);
+};
+
+clearLegacySharedAuth();
+
 const initialState = {
-    // token stored in local storage
-    token: localStorage.getItem('token'),
+    // token stored in session storage (tab-scoped)
+    token: sessionStorage.getItem(TOKEN_KEY),
     // this was originally null
     isAuthenticated: false, //localStorage.getItem('isAuthenticated') != undefined ? true : false,
     isLoading: false,
@@ -56,8 +68,8 @@ export default function(state=initialState, action){
         case LOGIN_SUCCESS:
         case REGISTER_SUCCESS:
             // when login successfully gives user a token
-            localStorage.setItem('token',action.payload.token);
-            localStorage.setItem('user',action.payload.user)
+            sessionStorage.setItem(TOKEN_KEY, action.payload.token);
+            sessionStorage.setItem(USER_KEY, JSON.stringify(action.payload.user));
             return {
                 ...state,
                 ...action.payload,
@@ -71,7 +83,8 @@ export default function(state=initialState, action){
         case USER_DELETE:
         case REGISTER_FAIL:
             // destroy token
-            localStorage.removeItem('token');
+            sessionStorage.removeItem(TOKEN_KEY);
+            sessionStorage.removeItem(USER_KEY);
             return{
                 ...state,
                 token:null,
