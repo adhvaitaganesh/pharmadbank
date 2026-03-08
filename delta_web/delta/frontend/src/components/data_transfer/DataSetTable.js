@@ -275,12 +275,13 @@ return (
         </div>
         <button className="btn btn-success d-flex align-items-center" onClick={massAddToCart}>
           <FaCartPlus className="me-1" />
-          Add to Cart
+          Add to Downloads
         </button>
       </div>
       <span>
         <strong>{selectedDataSets.length}</strong> file(s) selected.
       </span>
+      <p>Double click to view a dataset.</p>
       <div className="row">
           {renderItems()}
       </div>

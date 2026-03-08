@@ -59,16 +59,16 @@ const Cart = (props) => {
   };
 
   if(isLoadingCart){
-    return <div>Loading cart...</div>
+    return <div>Loading...</div>
   }
 
   return (
     <div className="container">
-      <h1>Your Cart</h1>
+      <h1>Your Downloads</h1>
       <div className="row">
         <div className="col-md-3">
           <div className="card p-3">
-            <h4>Download Summary</h4>
+            <h4>Summary</h4>
             <p>Number of files: {arrCartItems.length}</p>
             <button className="btn btn-primary" onClick={handleDownload}>
               Download Selected Items
