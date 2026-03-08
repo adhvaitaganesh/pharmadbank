@@ -173,7 +173,7 @@ const DataUploadForm = (props) => {
                   id="flexCheckPublic"
                 />
                 <label className="form-check-label" htmlFor="flexCheckPublic">
-                  Publicly Visible
+                  Publicly Visible to All Users
                 </label>
               </div>
               <div className="form-check">
@@ -184,7 +184,7 @@ const DataUploadForm = (props) => {
                   id="flexCheckPublicToOrg"
                 />
                 <label className="form-check-label" htmlFor="flexCheckPublicToOrg">
-                  Public to Orgs
+                  Public to Research Groups
                 </label>
               </div>
               <div className="form-check">
@@ -202,16 +202,16 @@ const DataUploadForm = (props) => {
                 File "visibility" is what allows you to control who sees your files. "Private" means
                 that only you can see the file; go to <Link to="/profile/glance">this link</Link> to
                 see your private files. "Public" means anyone logged in can see the file. "Public to
-                Orgs" means that all users registered under organizations that you select can see
+                Research Groups" means that all users registered under groups that you select can see
                 the file.
               </small>
             </div>
             <div className="form-group">
-              <label>Available Organizations</label>
+              <label>Available Research Groups</label>
               <Select options={selectOptions} onChange={onSelectChange} isMulti />
               <small className="form-text text-muted">
-                When you select an organization, the file will be visible to all members of the
-                organization when you make it publicly visible.
+                When you select a research group, the file will be visible to all members of the
+                group when you select the "Public to Research Groups" visibility option.
               </small>
             </div>
             <div className="form-group">
