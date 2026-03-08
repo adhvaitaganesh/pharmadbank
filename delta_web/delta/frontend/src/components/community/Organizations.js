@@ -40,10 +40,10 @@ const Organizations = (props) => {
         <div className="container" data-testid="organizations-1">
             <div>
                 <h1 className="text-center">
-                    Organizations
+                    Research Groups
                 </h1>
                 <p className="text-center">
-                    Here you can see all organizations registered with Delta. Click an organization to view it.
+                    Here you can see all research groups registered with us. Click a group to view it.
                 </p>
             </div>
             <div className='row'>
