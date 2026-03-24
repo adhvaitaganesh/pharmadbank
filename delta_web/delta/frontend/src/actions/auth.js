@@ -94,7 +94,15 @@ export const logout = () => (dispatch, getState) => {
 
 
 // REGISTER USER // CAHNGED
-export const register = ({ username, first_name, last_name, password, email,organization_name, organization_key }) => dispatch => {
+export const register = ({
+    username,
+    first_name,
+    last_name,
+    password,
+    email,
+    organization_name,
+    organization_key,
+}) => dispatch => {
     // headers
     const config = {
         headers: {

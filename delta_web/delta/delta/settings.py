@@ -32,6 +32,13 @@ import os
 import mimetypes
 mimetypes.add_type("text/javascript", ".js", True)
 
+
+def env_bool(name, default=False):
+    raw_value = os.environ.get(name)
+    if raw_value is None:
+        return default
+    return raw_value.strip().lower() in ("1", "true", "yes", "on")
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -40,12 +47,17 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-8-#*v%6fb-w7qt0%b91po)zp^qbqz$ub%&^3k$ian+&@714lz-'
+SECRET_KEY = os.environ.get('SECRET_KEY')
+if not SECRET_KEY:
+    raise RuntimeError("SECRET_KEY environment variable is not set.")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = env_bool('DEBUG', False)
 
-ALLOWED_HOSTS = ['guarded-journey-12008.herokuapp.com','127.0.0.1','localhost','*']
+ALLOWED_HOSTS = ['guarded-journey-12008.herokuapp.com', '127.0.0.1', 'localhost']
+_extra_host = os.environ.get('ALLOWED_HOST', '')
+if _extra_host:
+    ALLOWED_HOSTS.append(_extra_host)
 
 # Application definition
 

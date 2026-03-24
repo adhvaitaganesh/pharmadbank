@@ -41,8 +41,9 @@ class Organization(models.Model):
     # JUST BECAUSE FOLLOWING DOESNT MEAN REGISTERED
     following_users = models.ManyToManyField(User,related_name="followed_organizations",blank=True)
 
-    # TODO: 
-    # add a way for users to be a part of the organization
+    admins = models.ManyToManyField(User, related_name='admin_organizations', blank=True)
+
+    is_public = models.BooleanField(default=True)
 
     description = models.TextField(blank=True,null=True)
     

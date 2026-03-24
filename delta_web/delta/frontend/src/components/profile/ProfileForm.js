@@ -1,21 +1,33 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { connect } from 'react-redux';
+import { useLocation } from 'react-router-dom';
 import { updateUser, loadUser } from "../../actions/auth";
 import { joinOrganization, leaveOrganization } from "../../actions/organization";
 
 const ProfileForm = (props) => {
   if (!props.auth.user.username) return null;
 
-  const [userInfo, setUserInfo] = useState({
-    username: props.auth.user.username,
-    first_name: props.auth.user.first_name,
-    last_name: props.auth.user.last_name,
-    email: props.auth.user.email,
-    bio: props.auth.user.bio,
-    password: "",
-    org_key: "",
-    org_name:''
+  const location = useLocation();
+
+  const [userInfo, setUserInfo] = useState(() => {
+    const params = new URLSearchParams(location.search);
+    return {
+      username: props.auth.user.username,
+      first_name: props.auth.user.first_name,
+      last_name: props.auth.user.last_name,
+      email: props.auth.user.email,
+      bio: props.auth.user.bio,
+      password: "",
+      org_key: params.get('key') || "",
+      org_name: params.get('org') || "",
+    };
   });
+
+  const [joinMsg, setJoinMsg] = useState(
+    new URLSearchParams(location.search).get('org')
+      ? 'Invite link detected — review the details below and click Join.'
+      : ''
+  );
 
   const onChange = (e) => {
     setUserInfo({ ...userInfo, [e.target.name]: e.target.value });
@@ -31,12 +43,16 @@ const ProfileForm = (props) => {
     if (!userInfo.org_name || !userInfo.org_key) {
       return;
     }
+    setJoinMsg('');
     props.joinOrganization(userInfo.org_name, userInfo.org_key)
       .then(() => {
         setUserInfo({ ...userInfo, org_name: "", org_key: "" });
+        setJoinMsg('Successfully joined organization!');
         props.loadUser();
       })
-      .catch(() => {});
+      .catch(() => {
+        setJoinMsg('Failed to join organization. Check the name and key.');
+      });
   };
 
   const onLeaveOrg = (orgId) => {
@@ -146,13 +162,19 @@ const ProfileForm = (props) => {
           </div>
           <div className="mb-3">
             <label htmlFor="org_name" className="form-label">Join Organization via Secret Key</label>
+            {joinMsg && (
+              <div className={`alert ${joinMsg.startsWith('Successfully') ? 'alert-success' : 'alert-info'} py-1 mb-2`}>
+                {joinMsg}
+              </div>
+            )}
             <input
-              className="form-control"
+              className="form-control mb-1"
               id="org_name"
               name="org_name"
               value={userInfo.org_name}
               onChange={onChange}
               autoComplete="new-password"
+              placeholder="Organization name"
             />
             <input
               type="password"
@@ -162,7 +184,7 @@ const ProfileForm = (props) => {
               value={userInfo.org_key}
               onChange={onChange}
               autoComplete="new-password"
-              placeholder="Enter the key of an organization you wish to join, or leave blank for no change"
+              placeholder="Organization key"
             />
             <small className="form-text text-muted">
               All organizations have a secret key; admins of the organizations will provide the key to you if you

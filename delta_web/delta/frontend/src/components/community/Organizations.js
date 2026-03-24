@@ -24,7 +24,7 @@ import { connect } from 'react-redux';
 const Organizations = (props) => {
     // grab oraganization information
     const [orgData, setOrgData] = useState(null);
-    const [newOrg, setNewOrg] = useState({ name: '', description: '' });
+    const [newOrg, setNewOrg] = useState({ name: '', description: '', is_public: true });
     const [createMsg, setCreateMsg] = useState('');
     const [generatedKey, setGeneratedKey] = useState('');
 
@@ -47,7 +47,8 @@ const Organizations = (props) => {
     }, [])
 
     const onCreateChange = (e) => {
-        setNewOrg({ ...newOrg, [e.target.name]: e.target.value });
+        const { name, value, type, checked } = e.target;
+        setNewOrg({ ...newOrg, [name]: type === 'checkbox' ? checked : value });
     };
 
     const onCreateOrg = (e) => {
@@ -90,11 +91,27 @@ const Organizations = (props) => {
                         <label htmlFor="org_desc" className="form-label">Description</label>
                         <textarea id="org_desc" name="description" className="form-control" value={newOrg.description} onChange={onCreateChange} />
                     </div>
+                    <div className="mb-2 form-check">
+                        <input
+                            id="org_public"
+                            name="is_public"
+                            type="checkbox"
+                            className="form-check-input"
+                            checked={newOrg.is_public}
+                            onChange={onCreateChange}
+                        />
+                        <label htmlFor="org_public" className="form-check-label">
+                            Make organization publicly visible
+                        </label>
+                    </div>
                     <button className="btn btn-primary" type="submit">Create</button>
                     {createMsg && <div className="mt-2">{createMsg}</div>}
                     {generatedKey && (
                         <div className="mt-2 alert alert-warning">
-                            <strong>Save this key now:</strong> <code>{generatedKey}</code>
+                            <strong>Save this key now — it won't be shown again:</strong>{' '}
+                            <code>{generatedKey}</code>
+                            <br />
+                            <small>Go to the organization page to generate an invite link.</small>
                         </div>
                     )}
                 </form>

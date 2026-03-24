@@ -90,13 +90,11 @@ class ViewsetFolder(viewsets.ModelViewSet):
 # Public CSV viewset api
 # For dealing with public viewing of csv files
 #
-class ViewsetPublicDataSet(viewsets.ModelViewSet):
+class ViewsetPublicDataSet(viewsets.ReadOnlyModelViewSet):
     queryset = DataSet.objects.all()
 
-    # list/retrieve are intentionally open so unauthenticated users can
-    # browse/discover public dataset metadata (e.g. search page).
-    # The download action enforces authentication separately.
-    permission_classes = []
+    # Require authentication for all actions on this viewset.
+    permission_classes = [permissions.IsAuthenticated]
 
     serializer_class = SerializerDataSet
 

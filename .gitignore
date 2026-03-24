@@ -107,6 +107,7 @@ instance/
 
 # Sphinx documentation
 docs/_build/
+docs/
 
 # PyBuilder
 .pybuilder/
@@ -221,3 +222,6 @@ static/users/*
 
 # Paper
 # conference_paper/*
+
+# environment configuration
+.env
