@@ -12,40 +12,49 @@
 
 # json
 import json
-
-# import necessary models
-from django.http import FileResponse,HttpResponse
-from .models import (DataSet, TagDataset,File,Folder)
-from rest_framework import status,renderers
-from rest_framework.decorators import action
+import logging
+import os
+import random
 
 # zip the folder (dataset)
 import shutil
+import sqlite3
+import string
+import tempfile
 
 # threading
 import threading
-
+import zipfile
+from io import BytesIO
 from pathlib import Path
 
-import random
-import string
+# for parsing Excel and CSV files using pandas
+import pandas as pd
+
+# Get logger for this module
+logger = logging.getLogger(__name__)
 
 # files
 from django.conf import settings as django_settings
-import os
 
-# import necessary rest_framework stuff
-from rest_framework import viewsets, permissions
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework.parsers import FileUploadParser, MultiPartParser
+# import necessary models
+from django.http import FileResponse, HttpResponse
 
 # import orgs
 from organizations.models import Organization
 
+# import necessary rest_framework stuff
+from rest_framework import permissions, renderers, status, viewsets
+from rest_framework.decorators import action
+from rest_framework.parsers import FileUploadParser, MultiPartParser
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
+from .models import DataSet, DatasetRow, File, Folder, TagDataset
+
 # import necessary serializers
-from .serializers import (SerializerDataSet,SerializerTagDataset,
-                          SerializerFolder)
+from .serializers import SerializerDataSet, SerializerFolder, SerializerTagDataset
+
 
 #https://stackoverflow.com/questions/38697529/how-to-return-generated-file-download-with-django-rest-framework
 # Passes the generated file to the browser
@@ -100,22 +109,177 @@ class ViewsetPublicDataSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return DataSet.objects.filter(is_public=True)
 
-    @action(methods=['get'],detail=True,renderer_classes=(PassthroughRenderer,))
+    @action(methods=['get'],detail=True)
     def download(self,*args,**kwargs):
         instance = self.get_object()
-
-        zip_file_path = instance.get_zip_path()
+        logger.info(f"Download requested for dataset: {instance.id} - {instance.name}")
 
         # increase the download count
         instance.download_count += 1
         instance.save()
 
-        f = open(zip_file_path,'rb')
-        size = os.path.getsize(zip_file_path)
-        response = HttpResponse(f, content_type='application/zip')
-        response['Content-Length'] = size
-        response['Content-Disposition'] = f'attachment; filename={instance.name + ".zip"}'
-        return response
+        try:
+            # Get all files in the dataset and parse them into a DataFrame
+            logger.info(f"Parsing files for dataset {instance.id}")
+            df = self._parse_dataset_files(instance)
+            
+            if df is None or df.empty:
+                logger.error(f"No data found in dataset {instance.id}")
+                return Response(
+                    {'error': 'No data found in dataset'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            logger.info(f"Successfully parsed {len(df)} rows from dataset {instance.id}")
+            
+            # Table name: sanitize dataset name (remove special chars, use lowercase)
+            table_name = instance.name.lower().replace(' ', '_').replace('-', '_')
+            table_name = ''.join(c for c in table_name if c.isalnum() or c == '_')
+            
+            # Save to Django's existing SQLite database
+            db_path = django_settings.DATABASES['default']['NAME']
+            logger.info(f"Saving to database: {db_path}, table: {table_name}")
+            conn = sqlite3.connect(db_path)
+            
+            # Save DataFrame to SQLite, replace if exists
+            df.to_sql(table_name, con=conn, if_exists='replace', index=False)
+            conn.close()
+            
+            # Save table_name to the DataSet model so it can be retrieved later
+            instance.table_name = table_name
+            instance.save()
+            
+            logger.info(f"Successfully saved dataset {instance.id} to table {table_name}")
+            
+            return Response({
+                'message': 'Data successfully saved to SQLite',
+                'table_name': table_name,
+                'rows_saved': len(df),
+                'columns': list(df.columns),
+                'dataset_id': instance.id,
+                'dataset_name': instance.name
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            logger.exception(f"Error processing dataset {instance.id}: {str(e)}")
+            return Response(
+                {'error': f'Error processing dataset: {str(e)}'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+    
+    def _parse_dataset_files(self, dataset):
+        """
+        Parse all files in a dataset and combine them into a single DataFrame.
+        Supports CSV and Excel files. 
+        Files can be in original directory or zipped.
+        """
+        files = dataset.files.all()
+        logger.info(f"Found {files.count()} files for dataset {dataset.id}")
+        
+        if not files.exists():
+            logger.warning(f"No files found for dataset {dataset.id}")
+            return None
+        
+        dataframes = []
+        
+        # First check if we need to read from ZIP
+        zip_path = dataset.get_zip_path()
+        logger.info(f"Checking for ZIP file: {zip_path}")
+        
+        if os.path.exists(zip_path):
+            # Read from ZIP file
+            logger.info(f"Found ZIP file, reading from: {zip_path}")
+            return self._parse_from_zip(zip_path, dataset)
+        
+        # Otherwise try to read from original file paths
+        for file_obj in files:
+            file_path = file_obj.file_path
+            logger.info(f"Processing file: {file_path}")
+            
+            if not os.path.exists(file_path):
+                logger.error(f"File does not exist: {file_path}")
+                continue
+            
+            try:
+                if file_path.lower().endswith(('.xlsx', '.xls')):
+                    logger.info(f"Reading Excel file: {file_path}")
+                    df = pd.read_excel(file_path)
+                elif file_path.lower().endswith('.csv'):
+                    logger.info(f"Reading CSV file: {file_path}")
+                    df = pd.read_csv(file_path)
+                else:
+                    logger.warning(f"Unsupported file format: {file_path}")
+                    continue
+                
+                logger.info(f"Successfully loaded {len(df)} rows from {file_path}")
+                dataframes.append(df)
+            except Exception as e:
+                logger.error(f'Error parsing file {file_path}: {str(e)}')
+                continue
+        
+        if not dataframes:
+            logger.warning(f"No dataframes could be loaded for dataset {dataset.id}")
+            return None
+        
+        # Combine all dataframes if multiple files
+        if len(dataframes) == 1:
+            logger.info(f"Returning single dataframe with {len(dataframes[0])} rows")
+            return dataframes[0]
+        else:
+            # Concatenate all dataframes
+            combined = pd.concat(dataframes, ignore_index=True)
+            logger.info(f"Combined {len(dataframes)} files into {len(combined)} total rows")
+            return combined
+
+    def _parse_from_zip(self, zip_path, dataset):
+        """
+        Extract and parse files from a ZIP archive.
+        Returns combined DataFrame or None if no valid data found.
+        """
+        dataframes = []
+        
+        try:
+            with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                # Create temporary directory to extract files
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    logger.info(f"Extracting ZIP to temporary directory: {temp_dir}")
+                    zip_ref.extractall(temp_dir)
+                    
+                    # Find all CSV and Excel files in the extracted contents
+                    for root, dirs, filenames in os.walk(temp_dir):
+                        for filename in filenames:
+                            file_path = os.path.join(root, filename)
+                            logger.info(f"Found file in ZIP: {filename}")
+                            
+                            try:
+                                if filename.lower().endswith(('.xlsx', '.xls')):
+                                    logger.info(f"Reading Excel from ZIP: {filename}")
+                                    df = pd.read_excel(file_path)
+                                    dataframes.append(df)
+                                    logger.info(f"Loaded {len(df)} rows from {filename}")
+                                elif filename.lower().endswith('.csv'):
+                                    logger.info(f"Reading CSV from ZIP: {filename}")
+                                    df = pd.read_csv(file_path)
+                                    dataframes.append(df)
+                                    logger.info(f"Loaded {len(df)} rows from {filename}")
+                            except Exception as e:
+                                logger.error(f"Error reading {filename} from ZIP: {str(e)}")
+                                continue
+        except Exception as e:
+            logger.error(f"Error reading ZIP file {zip_path}: {str(e)}")
+            return None
+        
+        if not dataframes:
+            logger.warning(f"No valid data files found in ZIP: {zip_path}")
+            return None
+        
+        if len(dataframes) == 1:
+            logger.info(f"Returning single dataframe with {len(dataframes[0])} rows")
+            return dataframes[0]
+        else:
+            combined = pd.concat(dataframes, ignore_index=True)
+            logger.info(f"Combined {len(dataframes)} files from ZIP into {len(combined)} total rows")
+            return combined
 
 def write_file(file_path, file_data):
     with open(file_path, 'wb+') as f:
@@ -238,29 +402,53 @@ class ViewsetDataSet(viewsets.ModelViewSet):
         
         # then create the files
         for index in range(0,num_files):
-            file_key = f"file.{index}"
-            relative_path_key = file_key + '.relativePath'
-            full_path= os.path.join(strDataSetPath,request.data[relative_path_key])
-            file = request.data[file_key]
-            
-            # probably better way to do this
-            file_obj = File(dataset=dataSet, 
-                            file_path=full_path, 
-                            file_name=str(file))
-            file_obj.save()
+                file_key = f"file.{index}"
+                relative_path_key = file_key + '.relativePath'
+                full_path= os.path.join(strDataSetPath,request.data[relative_path_key])
+                file = request.data[file_key]
+                file_name = str(file)
+                
+                file_obj = File(dataset=dataSet, 
+                                file_path=full_path, 
+                                file_name=file_name)
+                file_obj.save()
 
-            # for use in threaded process
-            file_data = file.read()
-            fileDatas.append({
-                    'file_path': full_path,
-                    'file_data': file_data
-                })
+                file_data = file.read()
+                fileDatas.append({
+                        'file_path': full_path,
+                        'file_data': file_data
+                    })
 
         # then attach the organizations
 
     
 
-        # Step 4: Start a new thread to process the files
+        # Step 4: Parse and save to SQLite BEFORE zipping (while files are still in memory)
+        try:
+            file_bytes = BytesIO(file_data)
+            fname = file_name.lower()
+    
+            if fname.endswith('.csv'):
+                df = pd.read_csv(file_bytes)
+            elif fname.endswith(('.xlsx', '.xls')):
+                df = pd.read_excel(file_bytes)
+            else:
+                df = None
+
+            if df is not None:
+                df = df.fillna('')
+                rows = [
+                    DatasetRow(dataset=dataSet, row_data=row, row_index=i)
+                    for i, row in enumerate(df.to_dict('records'))
+                ]
+                DatasetRow.objects.bulk_create(rows)
+                logger.info(f"Saved {len(rows)} rows to DB for dataset '{dataSet.name}'")
+
+        except Exception as e:
+            logger.error(f"Failed to parse {file_name}: {e}")
+
+
+        # Step 5: Now zip the files (in background thread)
         thread = threading.Thread(target=process_files,args=(fileDatas,strDataSetPath,dataSet.get_zip_path()))
         thread.start()
 
@@ -325,3 +513,169 @@ class ViewsetTagDataset(viewsets.ModelViewSet):
             newTags.append(tag)
 
         return Response(self.get_serializer(newTags,many=True).data)
+
+
+# Parse file view
+# Handles parsing of CSV and Excel files and returns data as JSON
+class ParseFileView(APIView):
+    permission_classes = [permissions.AllowAny]
+    parser_classes = (MultiPartParser,)
+
+    def post(self, request):
+        """
+        Parse an uploaded CSV or Excel file and return columns and rows.
+        Automatically saves the parsed data to SQLite database.
+        Expects: file parameter in multipart form data
+        Returns: {headers: [...], rows: [...], table_name: '...', rows_saved: N}
+        """
+        try:
+            file = request.FILES.get('file')
+            
+            if not file:
+                return Response(
+                    {'error': 'No file provided'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            file_name = file.name.lower()
+            
+            # Check file extension
+            if file_name.endswith('.xlsx') or file_name.endswith('.xls'):
+                return self._parse_and_save_excel(file)
+            elif file_name.endswith('.csv'):
+                return self._parse_and_save_csv(file)
+            else:
+                return Response(
+                    {'error': 'Unsupported file format. Please upload CSV or Excel file.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        except Exception as e:
+            logger.exception(f"Error in ParseFileView: {str(e)}")
+            return Response(
+                {'error': f'Error parsing file: {str(e)}'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+    def _generate_table_name(self, file_name):
+        """Generate a valid SQLite table name from filename"""
+        # Remove file extension
+        table_name = os.path.splitext(file_name)[0]
+        
+        # Convert to lowercase, replace spaces and hyphens with underscores
+        table_name = table_name.lower().replace(' ', '_').replace('-', '_')
+        
+        # Remove any special characters, keep only alphanumeric and underscores
+        table_name = ''.join(c for c in table_name if c.isalnum() or c == '_')
+        
+        # Remove leading underscores/numbers and ensure it's a valid identifier
+        table_name = 'tbl_' + table_name[-50:] if table_name else 'tbl_data'
+        
+        return table_name
+
+    def _save_to_sqlite(self, df, file_name):
+        """Save DataFrame to SQLite database and return table name"""
+        try:
+            table_name = self._generate_table_name(file_name)
+            db_path = django_settings.DATABASES['default']['NAME']
+            
+            logger.info(f"Saving parsed data to SQLite: {db_path}, table: {table_name}")
+            conn = sqlite3.connect(db_path)
+            
+            # Save DataFrame to SQLite, replace if exists
+            df.to_sql(table_name, con=conn, if_exists='replace', index=False)
+            conn.close()
+            
+            logger.info(f"Successfully saved {len(df)} rows to table {table_name}")
+            return table_name, len(df)
+            
+        except Exception as e:
+            logger.error(f"Error saving to SQLite: {str(e)}")
+            raise
+
+    def _parse_and_save_excel(self, file):
+        """Parse Excel file, save to SQLite and return data using pandas"""
+        try:
+            file_bytes = file.read()
+            df = pd.read_excel(BytesIO(file_bytes))
+            
+            # Handle NaN values
+            df = df.fillna('')
+            
+            # Save to SQLite
+            table_name, rows_saved = self._save_to_sqlite(df, file.name)
+            
+            headers = list(df.columns)
+            rows = df.to_dict('records')
+            
+            return Response({
+                'headers': headers,
+                'rows': rows,
+                'shape': [len(rows), len(headers)],
+                'table_name': table_name,
+                'rows_saved': rows_saved,
+                'message': f'File parsed and saved to database table: {table_name}'
+            })
+        except Exception as e:
+            logger.exception(f"Error parsing Excel file: {str(e)}")
+            return Response(
+                {'error': f'Error parsing Excel file: {str(e)}'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+    def _parse_and_save_csv(self, file):
+        """Parse CSV file, save to SQLite and return data using pandas"""
+        try:
+            file_bytes = file.read()
+            df = pd.read_csv(BytesIO(file_bytes))
+            
+            # Handle NaN values
+            df = df.fillna('')
+            
+            # Save to SQLite
+            table_name, rows_saved = self._save_to_sqlite(df, file.name)
+            
+            headers = list(df.columns)
+            rows = df.to_dict('records')
+            
+            return Response({
+                'headers': headers,
+                'rows': rows,
+                'shape': [len(rows), len(headers)],
+                'table_name': table_name,
+                'rows_saved': rows_saved,
+                'columns': headers,
+                'message': f'File parsed and saved to database table: {table_name}'
+            })
+        except Exception as e:
+            logger.exception(f"Error parsing CSV file: {str(e)}")
+            return Response(
+                {'error': f'Error parsing CSV file: {str(e)}'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+
+# Dataset Table View
+# Fetches table data from SQLite for displaying in the table viewer
+class DatasetTableView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, dataset_id):
+        try:
+            dataset = DataSet.objects.get(id=dataset_id, author=request.user)
+            table_name = getattr(dataset, 'table_name', None)
+            
+            if not table_name:
+                return Response({'error': 'No table data available'}, status=404)
+            
+            db_path = django_settings.DATABASES['default']['NAME']
+            conn = sqlite3.connect(db_path)
+            df = pd.read_sql(f'SELECT * FROM "{table_name}" LIMIT 500', conn)
+            conn.close()
+
+            return Response({
+                'headers': list(df.columns),
+                'rows': df.fillna('').to_dict('records'),
+                'total_rows': len(df)
+            })
+        except Exception as e:
+            return Response({'error': str(e)}, status=400)

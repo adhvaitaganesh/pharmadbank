@@ -6,26 +6,25 @@
 #
 # Stores all the information related to the models of `data` app.
 #
+# for file manip
+import os
+
+# cart
+from accounts.models import Cart
 from django.conf import settings
+
+# TODO: Change to our custom user model.
+from django.contrib.auth import get_user_model
 from django.db import models
-from django.utils import timezone
 
 # signal when the model is deleted
 # see: https://stackoverflow.com/questions/71278989/how-to-call-a-function-when-you-delete-a-model-object-in-django-admin-page-or
 from django.db.models.signals import post_delete
 from django.dispatch import receiver
-
-# TODO: Change to our custom user model.
-from django.contrib.auth import get_user_model
-
-# for file manip
-import os
+from django.utils import timezone
 
 # for add to org
 from organizations.models import Organization
-
-# cart
-from accounts.models import Cart
 
 User = get_user_model()
 
@@ -67,6 +66,7 @@ class DataSet(models.Model):
 
     name = models.CharField(max_length=128)
     original_name = models.CharField(max_length=128)
+    table_name = models.CharField(max_length=255, blank=True, null=True)
 
     def __str__(self):
         return self.name
@@ -138,3 +138,11 @@ class TagDataset(BaseTag):
 
     def __str__(self):
         return "Tag {}".format(self.text)
+
+class DatasetRow(models.Model):
+    dataset = models.ForeignKey(DataSet, on_delete=models.CASCADE, related_name='rows')
+    row_data = models.JSONField()
+    row_index = models.IntegerField()
+
+    class Meta:
+        ordering = ['row_index']

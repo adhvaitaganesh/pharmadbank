@@ -219,5 +219,8 @@ static/users/*
 *.csv
 *.zip
 
+# Claude Code
+CLAUDE.md
+
 # Paper
 # conference_paper/*
