@@ -34,6 +34,7 @@ import string
 from django.conf import settings as django_settings
 import os
 
+from django.db.models import Q
 # import necessary rest_framework stuff
 from rest_framework import viewsets, permissions
 from rest_framework.views import APIView
@@ -98,11 +99,32 @@ class ViewsetPublicDataSet(viewsets.ModelViewSet):
     serializer_class = SerializerDataSet
 
     def get_queryset(self):
+        if self.request.user and self.request.user.is_authenticated:
+            user_orgs = self.request.user.followed_organizations.all()
+            return DataSet.objects.filter(
+                Q(is_public=True) |
+                Q(author=self.request.user) |
+                Q(is_public_orgs=True, registered_organizations__in=user_orgs) |
+                Q(is_public = False)
+            ).distinct()
         return DataSet.objects.filter(is_public=True)
 
     @action(methods=['get'],detail=True,renderer_classes=(PassthroughRenderer,))
     def download(self,*args,**kwargs):
         instance = self.get_object()
+
+        # Only allow download if dataset is public or owned by user or accessible to the user's organization.
+        if not instance.is_public:
+            is_owner = self.request.user.is_authenticated and instance.author == self.request.user
+            is_org_member = False
+            if self.request.user.is_authenticated and instance.is_public_orgs:
+                is_org_member = instance.registered_organizations.filter(following_users=self.request.user).exists()
+
+            if not is_owner and not is_org_member:
+                return Response(
+                    {'detail': 'Dataset is private; please contact the owner to request access.'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
 
         zip_file_path = instance.get_zip_path()
 

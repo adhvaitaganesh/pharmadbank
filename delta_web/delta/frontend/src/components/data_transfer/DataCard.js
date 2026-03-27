@@ -54,6 +54,12 @@ const DataCard = ({ data, style }) => {
           <div className="d-flex justify-content-between align-items-start mb-3">
             <div>
               <h5 className="card-title">{data.name}</h5>
+              {!data.is_public && !data.is_public_orgs && (
+                <span className="badge bg-secondary me-1">Private</span>
+              )}
+              {data.is_public_orgs && !data.is_public && (
+                <span className="badge bg-info text-dark me-1">Org Only</span>
+              )}
               <div className="d-flex">{renderStars(data.avg_rating - 1)}</div>
             </div>
             <div className="text-end">

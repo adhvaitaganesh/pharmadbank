@@ -2,6 +2,8 @@ import React from "react";
 import { connect } from "react-redux";
 import { Link, useNavigate } from "react-router-dom";
 import { downloadDataset, deleteDataset } from "../../actions/datasets";
+import { createMessage } from "../../actions/messages";
+import { addConversation, getUserConversations } from "../../actions/conversation";
 import tag_styles from "../data_transfer/tags.module.css";
 
 const Dataset = (props) => {
@@ -19,6 +21,37 @@ const Dataset = (props) => {
 
   const clickDownload = () => {
     props.downloadDataset(props.data.id);
+  };
+
+  const clickContactOwner = async () => {
+    const ownerUsername = props.data.author_username;
+
+    try {
+      const existing = await props.getUserConversations(ownerUsername);
+      if (existing && existing.length > 0) {
+        navigate(`/messages/conversations/${existing[0].id}`);
+        return;
+      }
+
+      const title = `Access request: ${props.data.name}`;
+      const res = await props.addConversation({
+        author: props.auth.user.id,
+        other_user_username: ownerUsername,
+        title,
+      });
+
+      if (res && res.data && res.data.id) {
+        navigate(`/messages/conversations/${res.data.id}`);
+        return;
+      }
+    } catch (err) {
+      console.error(err);
+    }
+
+    props.createMessage({
+      downloadDatasetError:
+        "Unable to start conversation. Please try again or contact the owner manually.",
+    });
   };
 
   return (
@@ -49,21 +82,35 @@ const Dataset = (props) => {
           ))}
         </div>
       </div>
-      {props.auth.user.id === props.data.author && (
-        <div className="d-flex justify-content-between mt-3">
-          <div>
-            <Link to={`/datasets/${props.data.id}/edit`} className="btn btn-primary me-2">
-              Edit
-            </Link>
-            <button className="btn btn-success" onClick={clickDownload}>
-              Download
+
+      <div className="mt-3">
+        {props.auth.user.id === props.data.author ? (
+          <div className="d-flex justify-content-between mt-3">
+            <div>
+              <Link to={`/datasets/${props.data.id}/edit`} className="btn btn-primary me-2">
+                Edit
+              </Link>
+              <button className="btn btn-success" onClick={clickDownload}>
+                Download
+              </button>
+            </div>
+            <button onClick={clickDelete} className="btn btn-danger">
+              Delete
             </button>
           </div>
-          <button onClick={clickDelete} className="btn btn-danger">
-            Delete
+        ) : props.data.is_public || props.data.is_public_orgs ? (
+          <button className="btn btn-success" onClick={clickDownload}>
+            Download
           </button>
-        </div>
-      )}
+        ) : (
+          <button
+            className="btn btn-secondary"
+            onClick={clickContactOwner}
+          >
+            Contact Owner (Request Access)
+          </button>
+        )}
+      </div>
     </div>
   );
 };
@@ -72,6 +119,10 @@ const mapStateToProps = (state) => ({
   auth: state.auth,
 });
 
-export default connect(mapStateToProps, { deleteDataset, downloadDataset })(
-  Dataset
-);
+export default connect(mapStateToProps, {
+  deleteDataset,
+  downloadDataset,
+  createMessage,
+  addConversation,
+  getUserConversations,
+})(Dataset);
