@@ -212,8 +212,11 @@ class ViewsetConversation(viewsets.ModelViewSet):
     parser_classes = (MultiPartParser,)
     
     def get_queryset(self):
-        # simply get all conversations that user created
-        return self.request.user.author_conversation_set.all().order_by('-pub_date')
+        # return all conversations where the current user is a participant
+        # (either the creator or the other user in the conversation)
+        author_convos = self.request.user.author_conversation_set.all()
+        participant_convos = self.request.user.participant_conversation_set.all()
+        return author_convos.union(participant_convos).order_by('-pub_date')
     
     def retrieve(self,request,pk=None):
         return Response(self.serializer_class(Conversation.objects.get(pk=pk)).data)

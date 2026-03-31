@@ -25,6 +25,12 @@ const ContentContainer = styled.div`
 `;
 
 const ConversationCard = (props) => {
+  const currentUsername = (props.currentUsername || '').toLowerCase();
+  const authorUsername = (props.convoObj.author_username || '').toLowerCase();
+  const otherUsername = (props.convoObj.other_user_username || '').toLowerCase();
+
+  const displayOther = currentUsername && authorUsername === currentUsername ? otherUsername : authorUsername;
+
   return (
     <CardContainer>
       <IconContainer>
@@ -33,6 +39,7 @@ const ConversationCard = (props) => {
       <ContentContainer>
         <p>{props.convoObj.pub_date}</p>
         <p>{props.convoObj.title}</p>
+        <p><strong>With:</strong> {displayOther || 'Unknown'}</p>
         <Link to={`/messages/conversations/${props.convoObj.id}`}>View</Link>
       </ContentContainer>
     </CardContainer>

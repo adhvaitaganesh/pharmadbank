@@ -35,6 +35,7 @@ const ConversationTable = (props) => {
             <ConversationCard
                 key={index}
                 convoObj={item}
+                currentUsername={props.currentUsername}
             />
         ))}
     </div>
