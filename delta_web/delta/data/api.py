@@ -119,52 +119,58 @@ class ViewsetPublicDataSet(viewsets.ModelViewSet):
         instance.save()
 
         try:
-            # Get all files in the dataset and parse them into a DataFrame
-            logger.info(f"Parsing files for dataset {instance.id}")
-            df = self._parse_dataset_files(instance)
+            # Get the ZIP file path
+            zip_path = instance.get_zip_path()
+            logger.info(f"Looking for ZIP at: {zip_path}")
             
-            if df is None or df.empty:
-                logger.error(f"No data found in dataset {instance.id}")
+            # Try different path resolutions to find the actual file
+            possible_paths = [
+                zip_path,
+                os.path.join(django_settings.BASE_DIR, zip_path),
+                os.path.join(django_settings.MEDIA_ROOT, zip_path),
+            ]
+            
+            resolved_path = None
+            for path in possible_paths:
+                logger.info(f"Trying: {path}")
+                if os.path.exists(path) and os.path.isfile(path):
+                    file_size = os.path.getsize(path)
+                    logger.info(f"✓ Found file at {path}, size: {file_size} bytes")
+                    if file_size > 0:
+                        resolved_path = path
+                        break
+            
+            if not resolved_path:
+                logger.error(f"ZIP file not found or empty for dataset {instance.id}")
                 return Response(
-                    {'error': 'No data found in dataset'},
-                    status=status.HTTP_400_BAD_REQUEST
+                    {'error': 'ZIP file not found'},
+                    status=status.HTTP_404_NOT_FOUND
                 )
             
-            logger.info(f"Successfully parsed {len(df)} rows from dataset {instance.id}")
+            # Read ZIP file into memory to ensure data integrity
+            logger.info(f"Reading ZIP file: {resolved_path}")
+            with open(resolved_path, 'rb') as f:
+                zip_data = f.read()
             
-            # Table name: sanitize dataset name (remove special chars, use lowercase)
-            table_name = instance.name.lower().replace(' ', '_').replace('-', '_')
-            table_name = ''.join(c for c in table_name if c.isalnum() or c == '_')
+            logger.info(f"ZIP file read successfully. Size: {len(zip_data)} bytes")
             
-            # Save to Django's existing SQLite database
-            db_path = django_settings.DATABASES['default']['NAME']
-            logger.info(f"Saving to database: {db_path}, table: {table_name}")
-            conn = sqlite3.connect(db_path)
+            # Create response with file data
+            response = HttpResponse(zip_data, content_type='application/zip')
             
-            # Save DataFrame to SQLite, replace if exists
-            df.to_sql(table_name, con=conn, if_exists='replace', index=False)
-            conn.close()
+            # Configure download headers
+            filename = instance.name.replace(' ', '_').replace('/', '_')
+            filename = ''.join(c for c in filename if c.isalnum() or c in ('_', '-'))
+            response['Content-Disposition'] = f'attachment; filename="{filename}.zip"'
+            response['Content-Length'] = len(zip_data)
             
-            # Save table_name to the DataSet model so it can be retrieved later
-            instance.table_name = table_name
-            instance.save()
-            
-            logger.info(f"Successfully saved dataset {instance.id} to table {table_name}")
-            
-            return Response({
-                'message': 'Data successfully saved to SQLite',
-                'table_name': table_name,
-                'rows_saved': len(df),
-                'columns': list(df.columns),
-                'dataset_id': instance.id,
-                'dataset_name': instance.name
-            }, status=status.HTTP_200_OK)
+            logger.info(f"Returning download response for {filename}.zip")
+            return response
             
         except Exception as e:
-            logger.exception(f"Error processing dataset {instance.id}: {str(e)}")
+            logger.exception(f"Error downloading dataset {instance.id}: {str(e)}")
             return Response(
-                {'error': f'Error processing dataset: {str(e)}'},
-                status=status.HTTP_400_BAD_REQUEST
+                {'error': f'Error: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
     
     def _parse_dataset_files(self, dataset):
@@ -327,6 +333,7 @@ def process_files(file_data_list, dataset_path, dataset_zip_path):
 # Has the permission classes for the csv file viewset
 # Makes viewable only if csv files are marked as public.
 class ViewsetDataSet(viewsets.ModelViewSet):
+
     queryset = DataSet.objects.all()
 
     permission_classes = [
@@ -336,6 +343,72 @@ class ViewsetDataSet(viewsets.ModelViewSet):
     serializer_class = SerializerDataSet
 
     parser_classes = (MultiPartParser,)
+
+    @action(detail=True, methods=['post'], url_path='upload', parser_classes=[MultiPartParser])
+    def upload(self, request, pk=None):
+        """
+        Upload a file to the dataset with id=pk.
+        Expects a multipart/form-data POST with 'file'.
+        """
+        dataset = self.get_object()
+        upload_file = request.FILES.get('file')
+        if not upload_file:
+            return Response({'error': 'No file provided.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Save file to user's dataset directory
+        user_dir = f'static/users/{request.user.username}/files/{dataset.name}'
+        os.makedirs(user_dir, exist_ok=True)
+        file_path = os.path.join(user_dir, upload_file.name)
+        with open(file_path, 'wb+') as dest:
+            for chunk in upload_file.chunks():
+                dest.write(chunk)
+
+        # Create File model entry
+        file_obj = File(dataset=dataset, file_path=file_path, file_name=upload_file.name)
+        file_obj.save()
+
+        # Optionally: parse and add rows to DatasetRow, etc.
+
+        return Response({'message': 'File uploaded successfully.'}, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['delete'], url_path=r'files/(?P<file_id>\d+)')
+    def delete_file(self, request, pk=None, file_id=None):
+        """
+        Delete a specific file from a dataset.
+        URL: /api/datasets/{dataset_id}/files/{file_id}/
+        Only the dataset author can delete files.
+        """
+        try:
+            dataset = self.get_object()
+            
+            # Check permissions - only author can delete files
+            if dataset.author != request.user:
+                return Response(
+                    {'error': 'You do not have permission to delete files from this dataset'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
+            file_obj = File.objects.get(id=file_id, dataset=dataset)
+            
+            # Delete the physical file if it exists
+            if file_obj.file_path and os.path.exists(file_obj.file_path):
+                try:
+                    os.remove(file_obj.file_path)
+                    logger.info(f"Deleted physical file: {file_obj.file_path}")
+                except Exception as e:
+                    logger.warning(f"Could not delete physical file {file_obj.file_path}: {str(e)}")
+            
+            # Delete the File model entry
+            file_obj.delete()
+            logger.info(f"Deleted File object {file_id} from dataset {pk}")
+            
+            return Response({'message': f'File deleted successfully.'}, status=status.HTTP_204_NO_CONTENT)
+        
+        except File.DoesNotExist:
+            return Response({'error': f'File not found'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            logger.exception(f"Error deleting file {file_id}: {str(e)}")
+            return Response({'error': f'Error deleting file: {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)
 
     def get_queryset(self):
         return self.request.user.datasets.all()
@@ -524,7 +597,12 @@ class ParseFileView(APIView):
     def post(self, request):
         """
         Parse an uploaded CSV or Excel file and return columns and rows.
-        Automatically saves the parsed data to SQLite database.
+        Automatically saves the parsed data to SQLite database and updates File model.
+        
+        Query parameters:
+        - dataset_id: Optional, to associate the file with a dataset
+        - file_id: Optional, to update an existing File object
+        
         Expects: file parameter in multipart form data
         Returns: {headers: [...], rows: [...], table_name: '...', rows_saved: N}
         """
@@ -539,11 +617,37 @@ class ParseFileView(APIView):
             
             file_name = file.name.lower()
             
+            # Get optional parameters for File model association
+            dataset_id = request.query_params.get('dataset_id') or request.data.get('dataset_id')
+            file_id = request.query_params.get('file_id') or request.data.get('file_id')
+            
+            # Get or create File object if dataset_id is provided
+            file_obj = None
+            if file_id:
+                try:
+                    file_obj = File.objects.get(id=file_id)
+                    logger.info(f"Found existing File object: {file_id}")
+                except File.DoesNotExist:
+                    logger.warning(f"File object {file_id} not found")
+            elif dataset_id:
+                try:
+                    dataset = DataSet.objects.get(id=dataset_id)
+                    # Create new File object
+                    file_obj = File(
+                        dataset=dataset,
+                        file_name=file.name,
+                        file_path=f'uploads/{dataset_id}/{file.name}'
+                    )
+                    file_obj.save()
+                    logger.info(f"Created new File object for dataset {dataset_id}: {file_obj.id}")
+                except DataSet.DoesNotExist:
+                    logger.warning(f"Dataset {dataset_id} not found, continuing without File model update")
+            
             # Check file extension
             if file_name.endswith('.xlsx') or file_name.endswith('.xls'):
-                return self._parse_and_save_excel(file)
+                return self._parse_and_save_excel(file, file_obj=file_obj)
             elif file_name.endswith('.csv'):
-                return self._parse_and_save_csv(file)
+                return self._parse_and_save_csv(file, file_obj=file_obj)
             else:
                 return Response(
                     {'error': 'Unsupported file format. Please upload CSV or Excel file.'},
@@ -592,27 +696,40 @@ class ParseFileView(APIView):
             logger.error(f"Error saving to SQLite: {str(e)}")
             raise
 
-    def _parse_and_save_excel(self, file):
+    def _parse_and_save_excel(self, file, file_obj=None):
         """Parse Excel file, save to SQLite and return data using pandas"""
         try:
             file_bytes = file.read()
             df = pd.read_excel(BytesIO(file_bytes))
-            
+
             # Handle NaN values
             df = df.fillna('')
-            
+
             # Save to SQLite
             table_name, rows_saved = self._save_to_sqlite(df, file.name)
-            
+
+            # Save table_name to File model if file_obj provided
+            if file_obj:
+                file_obj.table_name = table_name
+                file_obj.save()
+                logger.info(f"Updated File {file_obj.id} with table_name: {table_name}")
+                
+                # Also update dataset's table_name if not already set
+                if file_obj.dataset and not file_obj.dataset.table_name:
+                    file_obj.dataset.table_name = table_name
+                    file_obj.dataset.save()
+                    logger.info(f"Updated Dataset {file_obj.dataset.id} with default table_name: {table_name}")
+
             headers = list(df.columns)
             rows = df.to_dict('records')
-            
+
             return Response({
                 'headers': headers,
                 'rows': rows,
                 'shape': [len(rows), len(headers)],
                 'table_name': table_name,
                 'rows_saved': rows_saved,
+                'file_id': file_obj.id if file_obj else None,
                 'message': f'File parsed and saved to database table: {table_name}'
             })
         except Exception as e:
@@ -622,21 +739,33 @@ class ParseFileView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-    def _parse_and_save_csv(self, file):
+    def _parse_and_save_csv(self, file, file_obj=None):
         """Parse CSV file, save to SQLite and return data using pandas"""
         try:
             file_bytes = file.read()
             df = pd.read_csv(BytesIO(file_bytes))
-            
+
             # Handle NaN values
             df = df.fillna('')
-            
+
             # Save to SQLite
             table_name, rows_saved = self._save_to_sqlite(df, file.name)
-            
+
+            # Save table_name to File model if file_obj provided
+            if file_obj:
+                file_obj.table_name = table_name
+                file_obj.save()
+                logger.info(f"Updated File {file_obj.id} with table_name: {table_name}")
+                
+                # Also update dataset's table_name if not already set
+                if file_obj.dataset and not file_obj.dataset.table_name:
+                    file_obj.dataset.table_name = table_name
+                    file_obj.dataset.save()
+                    logger.info(f"Updated Dataset {file_obj.dataset.id} with default table_name: {table_name}")
+
             headers = list(df.columns)
             rows = df.to_dict('records')
-            
+
             return Response({
                 'headers': headers,
                 'rows': rows,
@@ -644,6 +773,7 @@ class ParseFileView(APIView):
                 'table_name': table_name,
                 'rows_saved': rows_saved,
                 'columns': headers,
+                'file_id': file_obj.id if file_obj else None,
                 'message': f'File parsed and saved to database table: {table_name}'
             })
         except Exception as e:
@@ -659,23 +789,187 @@ class ParseFileView(APIView):
 class DatasetTableView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
-    def get(self, request, dataset_id):
+    def get(self, request, dataset_id, file_id=None):
+        """
+        Parse and return data from a dataset's database table.
+        
+        URL patterns:
+        - /api/dataset_table/{dataset_id}/{file_id}/ - specific file
+        - /api/dataset_table/{dataset_id}/ - dataset default table
+        
+        Query params:
+        - limit: Number of rows to return (default: 500, max: 10000)
+        - offset: Number of rows to skip (default: 0)
+        """
         try:
-            dataset = DataSet.objects.get(id=dataset_id, author=request.user)
-            table_name = getattr(dataset, 'table_name', None)
+            # Validate and parse incoming parameters
+            try:
+                dataset_id = int(dataset_id)
+                if file_id:
+                    file_id = int(file_id)
+            except (ValueError, TypeError):
+                logger.warning(f"Invalid parameter types: dataset_id={dataset_id}, file_id={file_id}")
+                return Response({'error': 'Invalid dataset_id or file_id format'}, status=400)
             
-            if not table_name:
-                return Response({'error': 'No table data available'}, status=404)
+            # Get query parameters
+            limit = min(int(request.query_params.get('limit', 500)), 10000)
+            offset = int(request.query_params.get('offset', 0))
             
-            db_path = django_settings.DATABASES['default']['NAME']
-            conn = sqlite3.connect(db_path)
-            df = pd.read_sql(f'SELECT * FROM "{table_name}" LIMIT 500', conn)
-            conn.close()
+            # Fetch dataset
+            try:
+                dataset = DataSet.objects.get(id=dataset_id)
+            except DataSet.DoesNotExist:
+                logger.warning(f"Dataset {dataset_id} not found")
+                return Response({'error': f'Dataset {dataset_id} not found'}, status=404)
 
-            return Response({
-                'headers': list(df.columns),
-                'rows': df.fillna('').to_dict('records'),
-                'total_rows': len(df)
-            })
+            # Check permissions: owner, public, or org member
+            if not (
+                dataset.author == request.user or
+                dataset.is_public or
+                (request.user.organizations.exists() and
+                 dataset.registered_organizations.filter(id__in=request.user.organizations.all()).exists())
+            ):
+                logger.warning(f"User {request.user.id} denied access to dataset {dataset_id}")
+                return Response({'error': 'Permission denied'}, status=403)
+
+            # Determine which table to query
+            table_name = None
+            file_obj = None
+            
+            if file_id:
+                # Get specific file's table
+                try:
+                    file_obj = File.objects.get(id=file_id, dataset=dataset)
+                    table_name = file_obj.table_name
+                    logger.info(f"File {file_id} found for dataset {dataset_id}")
+                except File.DoesNotExist:
+                    logger.warning(f"File {file_id} not found in dataset {dataset_id}")
+                    # List available files for debugging
+                    available_files = list(dataset.files.values_list('id', 'file_name', 'table_name'))
+                    return Response({
+                        'error': f'File {file_id} not found in dataset {dataset_id}',
+                        'available_files': [
+                            {'id': f[0], 'name': f[1], 'table_name': f[2]} 
+                            for f in available_files
+                        ]
+                    }, status=404)
+            else:
+                # Use dataset's default table
+                table_name = dataset.table_name
+                logger.info(f"Using dataset {dataset_id} default table: {table_name}")
+
+            # Validate table_name
+            if not table_name:
+                logger.info(f"No cached table_name for file {file_id}, attempting auto-parse...")
+                available_files = list(dataset.files.values('id', 'file_name', 'table_name'))
+                
+                files_with_tables = [f for f in available_files if f['table_name']]
+                files_without_tables = [f for f in available_files if not f['table_name']]
+                
+                # Try to auto-parse the file if it has a parsable extension
+                if file_obj and file_obj.file_path:
+                    file_ext = file_obj.file_name.lower().split('.')[-1] if file_obj.file_name else ''
+                    parsable_exts = ['csv', 'xlsx', 'xls']
+                    
+                    if file_ext in parsable_exts:
+                        logger.info(f"Auto-parsing file {file_id}: {file_obj.file_name} ({file_ext})")
+                        try:
+                            # Parse the file
+                            if file_ext == 'csv':
+                                df = pd.read_csv(file_obj.file_path)
+                            else:  # xlsx or xls
+                                df = pd.read_excel(file_obj.file_path)
+                            
+                            # Handle NaN values
+                            df = df.fillna('')
+                            
+                            # Generate table name (same logic as ParseFileView)
+                            base_name = os.path.splitext(file_obj.file_name)[0]
+                            table_name = base_name.lower().replace(' ', '_').replace('-', '_')
+                            table_name = ''.join(c for c in table_name if c.isalnum() or c == '_')
+                            table_name = 'tbl_' + table_name[-50:] if table_name else 'tbl_data'
+                            
+                            # Save to SQLite
+                            db_path = django_settings.DATABASES['default']['NAME']
+                            conn = sqlite3.connect(db_path)
+                            df.to_sql(table_name, con=conn, if_exists='replace', index=False)
+                            conn.close()
+                            
+                            # Update File object with table_name
+                            file_obj.table_name = table_name
+                            file_obj.save()
+                            
+                            # Update dataset's table_name if not set
+                            if not dataset.table_name:
+                                dataset.table_name = table_name
+                                dataset.save()
+                            
+                            logger.info(f"Auto-parsed file {file_id} to table {table_name}")
+                            # Continue with the normal flow
+                        except Exception as e:
+                            logger.error(f"Failed to auto-parse file {file_id}: {str(e)}")
+                            # Continue to error response below
+                
+                # If still no table_name, return error
+                if not table_name:
+                    response_data = {
+                        'error': 'No table data available for this dataset/file',
+                        'dataset_id': dataset_id,
+                        'file_id': file_id,
+                        'details': {
+                            'message': 'File needs to be re-uploaded or processed through the parser',
+                            'files_with_data': files_with_tables,
+                            'files_without_data': files_without_tables,
+                            'action_required': len(files_without_tables) > 0
+                        }
+                    }
+                    return Response(response_data, status=404)
+
+            # Query database
+            db_path = django_settings.DATABASES['default']['NAME']
+            
+            try:
+                conn = sqlite3.connect(db_path)
+                
+                # Get total row count
+                count_query = f'SELECT COUNT(*) as count FROM "{table_name}"'
+                count_df = pd.read_sql(count_query, conn)
+                total_count = count_df['count'].iloc[0] if len(count_df) > 0 else 0
+                
+                # Get data with limit and offset
+                data_query = f'SELECT * FROM "{table_name}" LIMIT {limit} OFFSET {offset}'
+                df = pd.read_sql(data_query, conn)
+                conn.close()
+                
+                logger.info(f"Successfully retrieved {len(df)} rows from table '{table_name}' (total: {total_count})")
+                
+                return Response({
+                    'success': True,
+                    'headers': list(df.columns),
+                    'rows': df.fillna('').to_dict('records'),
+                    'row_count': len(df),
+                    'total_rows': total_count,
+                    'offset': offset,
+                    'limit': limit,
+                    'dataset_id': dataset_id,
+                    'file_id': file_id,
+                    'table_name': table_name
+                }, status=200)
+                
+            except sqlite3.OperationalError as e:
+                logger.error(f"Database query failed for table '{table_name}': {str(e)}")
+                return Response({
+                    'error': f'Table "{table_name}" does not exist or cannot be queried',
+                    'details': str(e),
+                    'dataset_id': dataset_id,
+                    'table_name': table_name
+                }, status=500)
+            except Exception as e:
+                logger.error(f"Unexpected error querying table '{table_name}': {str(e)}")
+                raise
+                
         except Exception as e:
-            return Response({'error': str(e)}, status=400)
+            logger.exception(f"Unexpected error in DatasetTableView.get(): {str(e)}")
+            return Response({
+                'error': f'Server error: {str(e)}',
+            }, status=500)

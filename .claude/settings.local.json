@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(source .venv/Scripts/activate)",
+      "Bash(python delta_web/manage.py makemigrations)",
+      "Bash(python delta_web/delta/manage.py makemigrations)"
+    ]
+  }
+}

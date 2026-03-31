@@ -101,6 +101,9 @@ class File(models.Model):
     # file name not necessarily same as path
     file_name = models.TextField(db_column="file_name",blank=False,null=False,unique=False)
 
+    # table_name for storing SQLite table name for this file
+    table_name = models.CharField(max_length=255, blank=True, null=True)
+
     def __str__(self):
         return self.file_name
     

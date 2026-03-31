@@ -1,0 +1,100 @@
+/* Data table base styles */
+
+.dataTable {
+    border-collapse: collapse;
+    min-width: 100%;
+    font-size: 12.5px;
+}
+
+
+/* Table header cells */
+
+.headerCell {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: #f1f3f5;
+    border: 1px solid #dee2e6;
+    padding: 6px 10px;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: #495057;
+    text-align: left;
+    white-space: nowrap;
+}
+
+
+/* Header cell for row number column */
+
+.headerCellRowNum {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: #f1f3f5;
+    border: 1px solid #dee2e6;
+    padding: 6px 10px;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: #495057;
+    text-align: center;
+    white-space: nowrap;
+    min-width: 32px;
+}
+
+
+/* Table rows with alternating background colors */
+
+.tableRow {
+    transition: background-color 0.15s ease;
+}
+
+.tableRow:nth-child(odd) {
+    background: #fafafa;
+}
+
+.tableRow:nth-child(even) {
+    background: white;
+}
+
+
+/* Row hover effect - the key new feature */
+
+.tableRow:hover {
+    background-color: #e7f5ff;
+}
+
+
+/* Row number cell (leftmost column with index) */
+
+.rowNumberCell {
+    border: 1px solid #e9ecef;
+    padding: 5px 6px;
+    background: #f8f9fa;
+    color: #adb5bd;
+    font-size: 11px;
+    text-align: center;
+    min-width: 32px;
+    user-select: none;
+}
+
+
+/* Data cells */
+
+.dataCell {
+    border: 1px solid #e9ecef;
+    padding: 0;
+}
+
+
+/* Content inside data cells */
+
+.dataCellContent {
+    display: block;
+    padding: 5px 9px;
+    min-height: 28px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 160px;
+    color: #212529;
+}

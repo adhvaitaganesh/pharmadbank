@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { connect } from "react-redux";
-import { getDataset, deleteDataset } from "../../actions/datasets";
-import { addToCart } from "../../actions/cart";
+import { getDataset, deleteDataset, downloadDataset } from "../../actions/datasets";
 import { useParams } from "react-router-dom";
 import axios from "axios";
 import ReviewForm from "./ReviewForm";
@@ -35,8 +34,13 @@ const DatasetDetail = props => {
         });
     };
 
-    const addFileToCart = () => {
-        props.addToCart({ file_id: id });
+    const downloadFile = () => {
+        if (!csvFile || !csvFile.id) {
+            console.error('Dataset not loaded or missing ID');
+            return;
+        }
+        console.log('Downloading dataset with ID:', csvFile.id);
+        props.downloadDataset(csvFile.id);
     };
 
     useEffect(() => {
@@ -51,7 +55,7 @@ const DatasetDetail = props => {
             "div", { className: "row" },
             React.createElement(
                 "div", { className: "col-md-8" },
-                React.createElement(Dataset, { data: csvFile })
+                React.createElement(Dataset, { data: csvFile, auth: props.auth })
             ),
             React.createElement(
                 "div", { className: "col-md-4" },
@@ -86,8 +90,8 @@ const DatasetDetail = props => {
                 ),
                 React.createElement("hr"),
                 React.createElement(
-                    "button", { className: "btn btn-primary w-100", onClick: addFileToCart },
-                    "Add to Cart"
+                    "button", { className: "btn btn-success w-100", onClick: downloadFile, disabled: !csvFile },
+                    "Download the source files"
                 )
             )
         ),
@@ -122,4 +126,4 @@ const DatasetDetail = props => {
 
 const mapStateToProps = state => ({ auth: state.auth });
 
-export default connect(mapStateToProps, { getDataset, deleteDataset, addToCart })(DatasetDetail);
+export default connect(mapStateToProps, { getDataset, deleteDataset, downloadDataset })(DatasetDetail);

@@ -80,7 +80,42 @@ const parseCSV = (text) => {
     return { headers: df.getHeaders(), rows: df.getRows() };
 };
 
-const CSVDataViewer = ({ csvText, title = "📊 Data Preview", onDataFrameReady, token, datasetId, initialData }) => {
+// Detect file type from file name or extension
+const getFileType = (fileName) => {
+    if (!fileName) return "unknown";
+    const ext = fileName.toLowerCase().split('.').pop();
+    const typeMap = {
+        csv: "csv",
+        xlsx: "excel",
+        xls: "excel",
+        png: "image",
+        jpg: "image",
+        jpeg: "image",
+        gif: "image",
+        webp: "image",
+        pdf: "pdf",
+        txt: "text",
+        json: "json",
+    };
+    return typeMap[ext] || "unknown";
+};
+
+// Check if file type is parsable as tabular data
+const isParsableData = (fileType) => {
+    return ["csv", "excel", "json"].includes(fileType);
+};
+
+// Check if file type is an image
+const isImageType = (fileType) => {
+    return ["image"].includes(fileType);
+};
+
+const CSVDataViewer = ({ csvText, title = "📊 Data Preview", onDataFrameReady, token, datasetId, initialData, fileName = null }) => {
+
+    // Detect file type from fileName or default to CSV
+    const [detectedFileType, setDetectedFileType] = useState(() => {
+        return fileName ? getFileType(fileName) : "csv";
+    });
 
     // Use initialData from DB if provided, otherwise parse csvText
     const [parsedData, setParsedData] = useState(() => {
@@ -98,7 +133,8 @@ const CSVDataViewer = ({ csvText, title = "📊 Data Preview", onDataFrameReady,
     const [sortDir, setSortDir] = useState("asc");
     const [currentPage, setCurrentPage] = useState(1);
     const [fileLoaded, setFileLoaded] = useState(!!initialData);
-    const [fileType, setFileType] = useState("csv");
+    const [fileType, setFileType] = useState(detectedFileType);
+    const [imageUrl, setImageUrl] = useState(null);
     const [uploading, setUploading] = useState(false);
     const [uploadError, setUploadError] = useState("");
     const [downloadingDB, setDownloadingDB] = useState(false);
@@ -115,19 +151,48 @@ const CSVDataViewer = ({ csvText, title = "📊 Data Preview", onDataFrameReady,
         const file = e.target.files && e.target.files[0];
         if (!file) return;
 
-        const isExcel = file.name.endsWith(".xlsx") || file.name.endsWith(".xls");
-        const isCSV = file.name.endsWith(".csv");
+        const detectedType = getFileType(file.name);
+        console.log(`File detected: ${file.name}, type: ${detectedType}`);
 
-        if (!isExcel && !isCSV) {
-            setUploadError("Please upload a CSV or Excel file (.csv, .xlsx, .xls)");
+        // Handle image files separately
+        if (isImageType(detectedType)) {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                console.log("Image loaded successfully");
+                setImageUrl(event.target.result);
+                setFileType(detectedType);
+                setFileLoaded(true);
+                setUploadError("");
+                setUploadSuccess(`✓ Image loaded: ${file.name}`);
+                // Clear data-related state for images
+                setParsedData({ headers: [], rows: [] });
+                setDataFrame(new DataFrame([], []));
+                setTableName(null);
+                setDbResponse(null);
+            };
+            reader.onerror = (error) => {
+                console.error("Error loading image:", error);
+                setUploadError(`Error loading image: ${error.message}`);
+            };
+            reader.readAsDataURL(file);
+            return;
+        }
+
+        // Handle parsable data (CSV, Excel, etc.)
+        if (!isParsableData(detectedType)) {
+            setUploadError(`File type not supported. Please upload: CSV, Excel (.xlsx, .xls), PNG, JPG, GIF, or other common formats.`);
             return;
         }
 
         setUploading(true);
         setUploadError("");
+        setImageUrl(null); // Clear any previous image
 
         const formData = new FormData();
         formData.append("file", file);
+        if (datasetId) {
+            formData.append("dataset_id", datasetId);
+        }
 
         // Prepare headers with authorization token
         const headers = {};
@@ -135,8 +200,11 @@ const CSVDataViewer = ({ csvText, title = "📊 Data Preview", onDataFrameReady,
             headers["Authorization"] = `Token ${token}`;
         }
 
+        // Build URL with dataset_id as query parameter for better tracking
+        const parseUrl = datasetId ? `/api/parse_file/?dataset_id=${datasetId}` : "/api/parse_file/";
+
         // Send file to backend for parsing
-        fetch("/api/parse_file/", {
+        fetch(parseUrl, {
                 method: "POST",
                 body: formData,
                 headers: headers,
@@ -158,12 +226,13 @@ const CSVDataViewer = ({ csvText, title = "📊 Data Preview", onDataFrameReady,
                 setParsedData(parsedResult);
                 const df = new DataFrame(parsedResult.rows, parsedResult.headers);
                 setDataFrame(df);
-                setFileType(isExcel ? "excel" : "csv");
+                setFileType(detectedType);
                 setCurrentPage(1);
                 setSortCol("");
                 setSearchTerm("");
                 setFileLoaded(true);
                 setUploadError("");
+                setImageUrl(null); // Clear image if switching back to tabular data
 
                 // Handle new auto-save response from backend
                 if (data.table_name) {
@@ -311,15 +380,15 @@ const CSVDataViewer = ({ csvText, title = "📊 Data Preview", onDataFrameReady,
                     "span", {
                         style: {
                             fontSize: 11,
-                            background: fileType === "excel" ? "#dbeafe" : "#dcfce7",
-                            color: fileType === "excel" ? "#1e40af" : "#166534",
+                            background: fileType === "excel" ? "#dbeafe" : fileType === "image" ? "#fce7f3" : "#dcfce7",
+                            color: fileType === "excel" ? "#1e40af" : fileType === "image" ? "#be185d" : "#166534",
                             borderRadius: 10,
                             padding: "2px 8px",
                             marginLeft: 8,
                             fontWeight: 500
                         }
                     },
-                    fileType === "excel" ? "Excel loaded" : "CSV loaded"
+                    fileType === "excel" ? "Excel loaded" : fileType === "image" ? "Image loaded" : "CSV loaded"
                 ) :
                 null
             ),
@@ -362,7 +431,7 @@ const CSVDataViewer = ({ csvText, title = "📊 Data Preview", onDataFrameReady,
                 React.createElement("input", {
                     ref: fileInputRef,
                     type: "file",
-                    accept: ".csv,.xlsx,.xls",
+                    accept: ".csv,.xlsx,.xls,.png,.jpg,.jpeg,.gif,.webp,.pdf,.txt,.json",
                     onChange: handleFileUpload,
                     disabled: uploading,
                     style: { display: "none" }
@@ -385,7 +454,7 @@ const CSVDataViewer = ({ csvText, title = "📊 Data Preview", onDataFrameReady,
                         }
                     },
                     "✓ Saved to DB"
-                ) : fileLoaded ? React.createElement(
+                ) : fileLoaded && !isImageType(fileType) ? React.createElement(
                     "button", {
                         onClick: () => {
                             const dfJson = dataFrame.toJSON();
@@ -405,7 +474,7 @@ const CSVDataViewer = ({ csvText, title = "📊 Data Preview", onDataFrameReady,
                     },
                     "View DataFrame"
                 ) : null,
-                fileLoaded && datasetId ? React.createElement(
+                fileLoaded && datasetId && !isImageType(fileType) ? React.createElement(
                     "button", {
                         onClick: handleDownloadToDatabase,
                         disabled: downloadingDB || tableName,
@@ -519,15 +588,41 @@ const CSVDataViewer = ({ csvText, title = "📊 Data Preview", onDataFrameReady,
         ) : null,
         React.createElement(
             "div", { style: { marginBottom: 12, fontSize: 12, color: "#575757" } },
-            rows.length,
-            " rows | ",
-            headers.length,
-            " columns | Showing ",
-            paginated.length,
-            " of ",
-            sorted.length,
-            " filtered"
+            isImageType(fileType) && imageUrl ?
+            React.createElement("span", null, "Image Preview") :
+            isParsableData(fileType) && rows.length > 0 ?
+            React.createElement("span", null, rows.length, " rows | ", headers.length, " columns | Showing ", paginated.length, " of ", sorted.length, " filtered") :
+            React.createElement("span", null, "No data to display")
         ),
+        // Show image preview
+        isImageType(fileType) && imageUrl ?
+        React.createElement(
+            "div", {
+                style: {
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    marginBottom: 16,
+                    backgroundColor: "#f3f4f6",
+                    borderRadius: 8,
+                    padding: 16,
+                    minHeight: 200,
+                    maxHeight: 600
+                }
+            },
+            React.createElement("img", {
+                src: imageUrl,
+                style: {
+                    maxWidth: "100%",
+                    maxHeight: "100%",
+                    objectFit: "contain",
+                    borderRadius: 6
+                },
+                alt: "Preview"
+            })
+        ) :
+        // Show data table for parsable formats
+        isParsableData(fileType) && rows.length > 0 ?
         React.createElement(
             "div", { style: { overflowX: "auto", marginBottom: 16 } },
             React.createElement(
@@ -603,8 +698,8 @@ const CSVDataViewer = ({ csvText, title = "📊 Data Preview", onDataFrameReady,
                     )
                 )
             )
-        ),
-        totalPages > 1 ?
+        ) : null,
+        isParsableData(fileType) && totalPages > 1 ?
         React.createElement(
             "div", { style: { display: "flex", gap: 6, alignItems: "center", justifyContent: "center" } },
             React.createElement(
