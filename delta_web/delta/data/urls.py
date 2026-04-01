@@ -13,6 +13,7 @@ from django.urls import path, re_path
 from rest_framework import routers
 
 from .api import (
+    BatchDownloadDatasetsView,
     DatasetTableView,
     ParseFileView,
     ViewsetDataSet,
@@ -32,6 +33,7 @@ router.register('api/folder',ViewsetFolder,'Folders')
 # IMPORTANT: Explicit paths must come BEFORE router.urls to avoid conflicts
 urlpatterns  = [
     path('api/parse_file/', ParseFileView.as_view(), name='ParseFile'),
+    path('api/datasets/download/', BatchDownloadDatasetsView.as_view(), name='batch-download-datasets'),
     re_path(r'^api/dataset_table/(?P<dataset_id>\d+)/(?P<file_id>\d+)/?$', DatasetTableView.as_view(), name='dataset-table-file'),
     re_path(r'^api/dataset_table/(?P<dataset_id>\d+)/?$', DatasetTableView.as_view(), name='dataset-table-alt'),
 ]

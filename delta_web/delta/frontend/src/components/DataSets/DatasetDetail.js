@@ -7,20 +7,15 @@ import ReviewForm from "./ReviewForm";
 import Review from "./Review";
 import Dataset from "./Dataset";
 import CSVDataViewer from "./CSVDataViewer";
+import FileTypeIcon from "./FileTypeIcon";
 
 const DatasetDetail = props => {
     const { id } = useParams();
     const [csvFile, setDataset] = useState(null);
     const [arrReviews, setArrReviews] = useState([]);
-    const sampleCSV = `id,name,age,city,score,status
-1,Alice Müller,34,Berlin,92.5,active
-2,Bob Schmidt,27,Munich,78.0,inactive
-3,Clara Bauer,45,Hamburg,88.3,active
-4,David Keller,31,Frankfurt,65.1,pending
-5,Eva Wagner,29,Cologne,95.2,active
-6,Felix Braun,52,Stuttgart,71.8,inactive
-7,Greta Hoffmann,38,Düsseldorf,83.6,active
-8,Hans Richter,41,Leipzig,59.4,pending`;
+    const [tableData, setTableData] = useState(null);
+    const [dataLoading, setDataLoading] = useState(false);
+    const [dataError, setDataError] = useState(null);
 
     const retrieveData = () => {
         axios.get(`/api/datasets/${id}/`, {
@@ -31,6 +26,36 @@ const DatasetDetail = props => {
         }).then(res => {
             setDataset(res.data);
             setArrReviews(res.data.reviews);
+            setDataError(null);
+
+            // Fetch table data from database if dataset has a table_name
+            if (res.data.table_name) {
+                setDataLoading(true);
+                axios.get(`/api/dataset_table/${id}/`, {
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Token ${props.auth.token}`,
+                    },
+                }).then(tableRes => {
+                    if (tableRes.data.success) {
+                        setTableData({
+                            headers: tableRes.data.headers,
+                            rows: tableRes.data.rows
+                        });
+                        setDataError(null);
+                    } else if (tableRes.data.error) {
+                        setDataError(tableRes.data.error);
+                    }
+                    setDataLoading(false);
+                }).catch(err => {
+                    console.error("Failed to fetch table data:", err);
+                    setDataError("Failed to load table data");
+                    setDataLoading(false);
+                });
+            } else {
+                setTableData(null);
+                setDataLoading(false);
+            }
         });
     };
 
@@ -74,16 +99,28 @@ const DatasetDetail = props => {
                     React.createElement("h6", null, "Files: "),
                     React.createElement("p", null, csvFile.files.length, " file(s)"),
                     React.createElement(
-                        "div", { className: "file-list", style: { maxHeight: "150px", overflowY: "auto" } },
+                        "div", { className: "file-list", style: { maxHeight: "200px", overflowY: "auto" } },
                         React.createElement(
                             "ul", { className: "list-unstyled" },
-                            csvFile.files.map((file, index) =>
+                            csvFile.files && csvFile.files.length > 0 ? csvFile.files.map((file, index) =>
                                 React.createElement(
-                                    "li", { key: index, className: "mb-2" },
-                                    React.createElement("span", null, file.file_name.split(".")[0]),
-                                    " ",
-                                    React.createElement("small", null, "(" + file.file_name.split(".").pop() + ")")
+                                    "li", { key: index, className: "mb-3 p-2", style: { backgroundColor: "#f9fafb", borderRadius: "6px", display: "flex", alignItems: "center", gap: "8px" } },
+                                    React.createElement(FileTypeIcon, { filename: file.file_name, width: 24, height: 24 }),
+                                    React.createElement(
+                                        "div", { style: { flex: 1 } },
+                                        React.createElement(
+                                            "div", { style: { fontWeight: "500", fontSize: "14px" } },
+                                            file.file_name
+                                        ),
+                                        React.createElement(
+                                            "small", { style: { color: "#6b7280" } },
+                                            file.file_type ? `Type: ${file.file_type}` : ""
+                                        )
+                                    )
                                 )
+                            ) : React.createElement(
+                                "li", null,
+                                React.createElement("em", { className: "text-muted" }, "No files uploaded")
                             )
                         )
                     )
@@ -99,7 +136,16 @@ const DatasetDetail = props => {
             "div", { className: "row mt-4" },
             React.createElement(
                 "div", { className: "col-md-12" },
-                React.createElement(CSVDataViewer, { csvText: sampleCSV, title: "📊 Data Preview" })
+                React.createElement(CSVDataViewer, {
+                    initialData: tableData,
+                    title: "📊 Dataset Info Card",
+                    token: props.auth.token,
+                    datasetId: csvFile.id,
+                    fileName: csvFile.name,
+                    dataLoading: dataLoading,
+                    dataError: dataError,
+                    onRefresh: retrieveData
+                })
             )
         ),
         React.createElement(

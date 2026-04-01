@@ -140,6 +140,32 @@ const FileTypeIcon = ({ filename, width = 18, height = 18, style = {} }) => {
         );
     }
 
+    // PPTX icon - presentation file
+    if (ext === "pptx" || ext === "ppt") {
+        return ( <
+            svg width = { width }
+            height = { height }
+            viewBox = "0 0 24 24"
+            fill = "currentColor"
+            style = {
+                { color: "#d97706", ...style } } >
+            <
+            path d = "M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z" / >
+            <
+            circle cx = "10"
+            cy = "10"
+            r = "2.5"
+            fill = "white"
+            opacity = "0.8" / >
+            <
+            path d = "M15 14H7v2h8v-2z"
+            fill = "white"
+            opacity = "0.8" / >
+            <
+            /svg>
+        );
+    }
+
     // Text file icon (TXT, CSV, etc.)
     if (ext === "txt" || ext === "log" || ext === "md") {
         return ( <

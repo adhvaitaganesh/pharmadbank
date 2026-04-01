@@ -33,7 +33,7 @@ const DataSetTable = (props) => {
 
     const [tableCsvs, setTableCsvs] = useState(props.dataSets);
     const [arrFilesToDownload, setArrFilesToDownload] = useState([]);
-    const textMinLength = (props.textMinLength !== undefined) ? props.textMinLength : 3;
+    const textMinLength = props.textMinLength != null ? props.textMinLength : 3;
 
     // state for tag suggestions
     const [tagSuggestions, setTagSuggestions] = useState([]);
@@ -65,7 +65,7 @@ const DataSetTable = (props) => {
         }
     };
 
-    // when download selected datasets
+    // Download selected datasets
     const handleDownloadSelected = async() => {
         if (selectedDataSets.length === 0) {
             alert('Please select at least one dataset to download.');
@@ -74,7 +74,6 @@ const DataSetTable = (props) => {
 
         try {
             const dataset_ids = selectedDataSets.map(d => d.id);
-            console.log('Downloading datasets:', dataset_ids);
 
             const response = await axios.post(
                 '/api/datasets/download/', { dataset_ids }, {
@@ -86,34 +85,19 @@ const DataSetTable = (props) => {
                 }
             );
 
-            console.log('Response received, size:', response.data.size, 'bytes');
-
-            // Check if response is actually a ZIP file or error
-            if (response.data.size === 0) {
-                alert('ERROR: Downloaded file is empty. Check browser console and Django logs for details.');
-                return;
-            }
-
             // Create blob and download
             const blob = new Blob([response.data], { type: 'application/zip' });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `datasets_${new Date().getTime()}.zip`;
+            a.download = 'datasets.zip';
             document.body.appendChild(a);
             a.click();
             window.URL.revokeObjectURL(url);
             document.body.removeChild(a);
-            console.log('Download complete');
         } catch (error) {
             console.error('Download failed:', error);
-            let errorMsg = 'Unknown error';
-            if (error && error.response && error.response.data && error.response.data.error) {
-                errorMsg = error.response.data.error;
-            } else if (error && error.message) {
-                errorMsg = error.message;
-            }
-            alert(`Failed to download datasets:\n${errorMsg}\n\nCheck browser console for more details.`);
+            alert('Failed to download datasets. Please try again.');
         }
     };
 
@@ -171,19 +155,46 @@ const DataSetTable = (props) => {
 
             // file type search
             const fileTypeMatchs = arrFileTypeSearch.every((searchType) =>
-                searchType.length < textMinLength ||
                 arrStrFileTypes.some((fileType) => fileType.includes(searchType))
             )
+
+
+
             return allTagsMatch && nameMatches && authorMatches && fileTypeMatchs;
         });
 
         setTableCsvs(filteredCsvs);
     };
 
-    // double click to open detail page
+    if (!dataSets) {
+        return null;
+    }
+
+    // handle what happens when we click the dataset cart
+    // on single click highlight
+    // on double click enter
+    const handleSingleClickDataSet = (e) => {
+        setSelectedDataSets((items) => {
+            if (items.includes(e)) {
+                return items.filter((item) => item !== e);
+            } else {
+                return [...items, e];
+            }
+        });
+    };
+
     const handleDoubleClickDataSet = (item) => {
         navigate(`/datasets/${item.id}`);
     };
+
+    const handleSelectAll = () => {
+        setSelectedDataSets([...tableCsvs]);
+    };
+
+    const handleClearAll = () => {
+        setSelectedDataSets([]);
+    };
+
     // for double click
     useEffect(() => {
         return () => {
@@ -201,7 +212,6 @@ const DataSetTable = (props) => {
     const renderItems = () => {
         return tableCsvs.map((item) => {
             const isHighlighted = selectedDataSets.includes(item);
-            const backgroundColor = isHighlighted ? '#c2e7ff' : 'white';
 
             const handleClick = () => {
                 if (doubleClickTimeout.current) {
@@ -209,11 +219,7 @@ const DataSetTable = (props) => {
                     handleDoubleClickDataSet(item);
                     doubleClickTimeout.current = null;
                 } else {
-                    if (selectedDataSets.includes(item)) {
-                        setSelectedDataSets(selectedDataSets.filter(d => d.id !== item.id));
-                    } else {
-                        setSelectedDataSets([...selectedDataSets, item]);
-                    }
+                    handleSingleClickDataSet(item);
                     doubleClickTimeout.current = setTimeout(() => {
                         doubleClickTimeout.current = null;
                     }, 200);
@@ -227,25 +233,28 @@ const DataSetTable = (props) => {
                 span onClick = { handleClick } >
                 <
                 DataCard data = { item }
-                style = {
-                    { backgroundColor } }
-                /> <
-                /span> <
+                isSelected = { isHighlighted }
+                onCheckboxChange = {
+                    (e) => {
+                        e.stopPropagation();
+                        handleSingleClickDataSet(item);
+                    }
+                }
+                /> < /
+                span > <
                 /div>
             );
         });
     };
 
-
+    /* prettier-ignore */
     return ( <
-        div className = "container" >
+        div data - testid = "public_csv_file_table-1" >
         <
         div className = "mb-2" >
         <
         label htmlFor = "inputSearchFileName"
-        className = "form-label" >
-        File Name <
-        /label> <
+        className = "form-label" > File Name < /label> <
         input type = "text"
         className = "form-control"
         id = "inputSearchFileName"
@@ -256,9 +265,7 @@ const DataSetTable = (props) => {
         div className = "mb-2" >
         <
         label htmlFor = "inputSearchFileTypes"
-        className = "form-label" >
-        File Type(s) <
-        /label> <
+        className = "form-label" > File Type(s) < /label> <
         input type = "text"
         className = "form-control"
         id = "inputSearchFileTypes"
@@ -269,20 +276,16 @@ const DataSetTable = (props) => {
         div className = "mb-2" >
         <
         label htmlFor = "inputSearchTags"
-        className = "form-label" >
-        Tags <
-        /label> <
+        className = "form-label" > Tags < /label> <
         input type = "text"
         className = "form-control"
         id = "inputSearchTags"
         placeholder = "Enter tags separated by spaces"
         onChange = { onSearchChange }
         /> <
-        div className = "form-text" >
-        For example, enter "cat dog"
+        div className = "form-text" > For example, enter "cat dog"
         to see files with tags of "cat"
-        and "dog". <
-        /div> {
+        and "dog". < /div> {
             tagSuggestions.length > 0 && ( <
                 div className = "tag-suggestions"
                 style = {
@@ -299,55 +302,43 @@ const DataSetTable = (props) => {
                     ))
                 } <
                 /div>
-
             )
         } <
         /div> <
         div className = "mb-2" >
         <
         label htmlFor = "inputSearchAuthor"
-        className = "form-label" >
-        Author <
-        /label> <
+        className = "form-label" > Author < /label> <
         input type = "text"
         className = "form-control"
         id = "inputSearchAuthor"
         placeholder = "Enter an author associated with the dataset."
         onChange = { onSearchChange }
         /> <
-        div className = "form-text" >
-        For example, enter "user123"
-        to see public files uploaded by "user123". <
-        /div> <
+        div className = "form-text" > For example, enter "user123"
+        to see public files uploaded by "user123". < /div> <
         /div> <
         div className = "d-flex flex-row align-items-center mb-3 gap-2" >
         <
+        div className = "d-flex align-items-center gap-2" >
+        <
         button className = "btn btn-primary d-flex align-items-center"
-        onClick = { handleAddToFolder } >
-        <
-        FaFolderPlus className = "me-1" / >
-        Add to Folder <
-        /button> <
+        onClick = { handleAddToFolder } > < FaFolderPlus className = "me-1" / > Add to Folder < /button> <
         button className = "btn btn-success d-flex align-items-center"
-        onClick = { massAddToCart } >
-        <
-        FaCartPlus className = "me-1" / >
-        Add to Cart <
-        /button> <
-        button className = "btn btn-info d-flex align-items-center"
         onClick = { handleDownloadSelected }
-        disabled = { selectedDataSets.length === 0 } >
-        <
-        FaDownload className = "me-1" / >
-        Download Selected <
-        /button> <
+        disabled = { selectedDataSets.length === 0 } > < FaDownload className = "me-1" / > Download Selected < /button> <
         /div> <
-        span >
+        div className = "d-flex align-items-center gap-2 ms-auto" >
         <
-        strong > { selectedDataSets.length } < /strong> file(s) selected. <
-        /span> <
-        div className = "row" > { renderItems() } <
+        span className = "text-muted" > < strong > { selectedDataSets.length } < /strong> file(s) selected</span >
+        <
+        button className = "btn btn-sm btn-outline-secondary"
+        onClick = { handleSelectAll } > Select all < /button> <
+        button className = "btn btn-sm btn-outline-secondary"
+        onClick = { handleClearAll } > Clear < /button> <
         /div> <
+        /div> <
+        div className = "row" > { renderItems() } < /div> <
         FolderCreatePopup isVisible = { isPopupVisible }
         onClose = {
             () => setIsPopupVisible(false) }
@@ -362,11 +353,4 @@ const mapStateToProps = (state) => ({
     auth: state.auth,
 });
 
-const mapDispatchToProps = (dispatch) => ({
-    addToCart: (...args) => dispatch(addToCart(...args)),
-    createFolder(...args) {
-        return dispatch(createFolder(...args))
-    }
-});
-
-export default connect(mapStateToProps, mapDispatchToProps)(DataSetTable);
+export default connect(mapStateToProps, { addToCart, createFolder })(DataSetTable);

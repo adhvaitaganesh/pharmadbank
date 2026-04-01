@@ -101,6 +101,9 @@ class File(models.Model):
     # file name not necessarily same as path
     file_name = models.TextField(db_column="file_name",blank=False,null=False,unique=False)
 
+    # file type (extension) - e.g. "csv", "xlsx", "json", "pdf"
+    file_type = models.CharField(max_length=20, blank=True, null=True)
+
     # table_name for storing SQLite table name for this file
     table_name = models.CharField(max_length=255, blank=True, null=True)
 
@@ -112,6 +115,12 @@ class File(models.Model):
         # 
         if not self.file_name:
             self.file_name = str(os.path.basename(self.file_path))
+        
+        # auto-populate file_type from extension
+        if not self.file_type and self.file_name:
+            ext = self.file_name.rsplit('.', 1)[-1].lower() if '.' in self.file_name else ''
+            self.file_type = ext
+        
         super().save(*args,**kwargs)
     
     def in_folder(self):

@@ -1,0 +1,116 @@
+/* Checkbox styling */
+
+.cardCheckbox {
+    position: absolute;
+    top: 14px;
+    left: 14px;
+    width: 15px;
+    height: 15px;
+    accent-color: #1a4fd6;
+    cursor: pointer;
+    z-index: 10;
+}
+
+
+/* Files section */
+
+.filesSection {
+    margin-top: 12px;
+    padding-top: 11px;
+    border-top: 1px solid #e0ddd5;
+}
+
+.filesLabel {
+    display: block;
+    font-size: 10px;
+    font-weight: 500;
+    color: #9c9a94;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin-bottom: 6px;
+}
+
+.filesList {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.fileItem {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 11px;
+}
+
+.fileName {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: #1a1916;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+    min-width: 0;
+}
+
+.fileExt {
+    font-size: 9px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 4px;
+    flex-shrink: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+
+/* File type badge colors */
+
+.extCsv {
+    background: #e1f5ee;
+    color: #085041;
+    border: 1px solid #9FE1CB;
+}
+
+.ext-csv {
+    background: #e1f5ee;
+    color: #085041;
+    border: 1px solid #9FE1CB;
+}
+
+.ext-json {
+    background: #faeeda;
+    color: #633806;
+    border: 1px solid #FAC775;
+}
+
+.ext-xlsx {
+    background: #EAF3DE;
+    color: #27500A;
+    border: 1px solid #C0DD97;
+}
+
+.ext-pdf {
+    background: #faece7;
+    color: #712b13;
+    border: 1px solid #F5C4B3;
+}
+
+.ext-pptx {
+    background: #fbeaf0;
+    color: #72243e;
+    border: 1px solid #F4C0D1;
+}
+
+.ext-txt {
+    background: #f0efe9;
+    color: #5F5E5A;
+    border: 1px solid #D3D1C7;
+}
+
+.ext-default {
+    background: #f0efe9;
+    color: #5F5E5A;
+    border: 1px solid #D3D1C7;
+}

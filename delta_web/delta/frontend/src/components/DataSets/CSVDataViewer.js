@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import * as XLSX from "xlsx";
 
 // DataFrame class for managing tabular data
@@ -110,7 +110,7 @@ const isImageType = (fileType) => {
     return ["image"].includes(fileType);
 };
 
-const CSVDataViewer = ({ csvText, title = "📊 Data Preview", onDataFrameReady, token, datasetId, initialData, fileName = null }) => {
+const CSVDataViewer = ({ csvText, title = "📊 Dataset Info Card", onDataFrameReady, token, datasetId, initialData, fileName = null, dataLoading = false, dataError = null, onRefresh = null }) => {
 
     // Detect file type from fileName or default to CSV
     const [detectedFileType, setDetectedFileType] = useState(() => {
@@ -142,8 +142,22 @@ const CSVDataViewer = ({ csvText, title = "📊 Data Preview", onDataFrameReady,
     const [dbError, setDbError] = useState("");
     const [uploadSuccess, setUploadSuccess] = useState("");
     const [tableName, setTableName] = useState(null);
+    const [isRefreshing, setIsRefreshing] = useState(false);
     const fileInputRef = useRef(null);
     const rowsPerPage = 8;
+
+    // Update data when initialData prop changes (from DB refresh)
+    useEffect(() => {
+        if (initialData && initialData.headers && initialData.rows) {
+            const newData = { headers: initialData.headers, rows: initialData.rows };
+            setParsedData(newData);
+            setDataFrame(new DataFrame(newData.rows, newData.headers));
+            setCurrentPage(1);
+            setSearchTerm("");
+            setSortCol("");
+            setFileLoaded(true);
+        }
+    }, [initialData]);
 
     const { headers, rows } = parsedData;
 
@@ -491,9 +505,44 @@ const CSVDataViewer = ({ csvText, title = "📊 Data Preview", onDataFrameReady,
                         }
                     },
                     tableName ? "Already in DB" : downloadingDB ? "Saving..." : "Save to DB"
+                ) : null,
+                onRefresh ? React.createElement(
+                    "button", {
+                        onClick: () => {
+                            setIsRefreshing(true);
+                            onRefresh(() => setIsRefreshing(false));
+                        },
+                        disabled: isRefreshing || dataLoading,
+                        style: {
+                            background: isRefreshing || dataLoading ? "#9ca3af" : "#ef4444",
+                            color: "#fff",
+                            border: "none",
+                            borderRadius: 6,
+                            padding: "6px 14px",
+                            cursor: isRefreshing || dataLoading ? "not-allowed" : "pointer",
+                            fontSize: 13,
+                            whiteSpace: "nowrap",
+                            opacity: isRefreshing || dataLoading ? 0.6 : 1
+                        }
+                    },
+                    isRefreshing || dataLoading ? "↻ Syncing..." : "↻ Refresh DB"
                 ) : null
             )
         ),
+        dataError ? React.createElement(
+            "div", {
+                style: {
+                    background: "#fee2e2",
+                    color: "#991b1b",
+                    padding: "12px 16px",
+                    borderRadius: 6,
+                    marginBottom: 16,
+                    fontSize: 13,
+                    border: "1px solid #fecaca"
+                }
+            },
+            "⚠️ " + dataError
+        ) : null,
         uploadError ? React.createElement(
             "div", {
                 style: {

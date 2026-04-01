@@ -784,6 +784,210 @@ class ParseFileView(APIView):
             )
 
 
+# Batch Download View
+# Allows users to download multiple datasets as a single ZIP file
+class BatchDownloadDatasetsView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        """
+        Download multiple datasets as a ZIP file.
+        
+        Request body: {
+            "dataset_ids": [1, 2, 3, ...]
+        }
+        
+        Returns: ZIP file containing all dataset files organized by dataset name
+        """
+        try:
+            dataset_ids = request.data.get('dataset_ids', [])
+            
+            if not dataset_ids or not isinstance(dataset_ids, list):
+                return Response(
+                    {'error': 'Invalid or missing dataset_ids parameter'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Get datasets - only public ones or ones owned by user
+            datasets = DataSet.objects.filter(
+                id__in=dataset_ids,
+                is_public=True
+            ) | DataSet.objects.filter(
+                id__in=dataset_ids,
+                author=request.user
+            )
+            datasets = datasets.distinct()
+            
+            if not datasets.exists():
+                return Response(
+                    {'error': 'No datasets found or you do not have permission to access them'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            
+            logger.info(f"BatchDownloadDatasetsView: BASE_DIR = {django_settings.BASE_DIR}")
+            logger.info(f"BatchDownloadDatasetsView: MEDIA_ROOT = {django_settings.MEDIA_ROOT}")
+            
+            # Increment download count for each dataset
+            for dataset in datasets:
+                dataset.download_count += 1
+                dataset.save()
+            
+            # Create ZIP file in memory
+            buffer = BytesIO()
+            files_added = 0
+            
+            with zipfile.ZipFile(buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
+                for dataset in datasets:
+                    files = dataset.files.all()
+                    logger.info(f"Dataset {dataset.id} ({dataset.name}): {files.count()} files")
+                    
+                    if not files.exists():
+                        logger.warning(f"Dataset {dataset.id} has no files")
+                        continue
+                    
+                    for file_obj in files:
+                        logger.info(f"Processing file: {file_obj.file_name} (path: {file_obj.file_path})")
+                        
+                        # Resolve file path - try multiple strategies
+                        resolved_path = None
+                        file_from_zip = None  # Track if we're extracting from a ZIP
+                        
+                        # Strategy 1: Check if absolute path exists as-is
+                        if os.path.isabs(file_obj.file_path) and os.path.isfile(file_obj.file_path):
+                            resolved_path = file_obj.file_path
+                            logger.info(f"✓ Found at absolute path: {resolved_path}")
+                        
+                        # Strategy 2: Try relative to BASE_DIR
+                        if not resolved_path:
+                            rel_path = os.path.join(django_settings.BASE_DIR, file_obj.file_path)
+                            if os.path.isfile(rel_path):
+                                resolved_path = rel_path
+                                logger.info(f"✓ Found relative to BASE_DIR: {resolved_path}")
+                        
+                        # Strategy 3: Try relative to MEDIA_ROOT
+                        if not resolved_path and hasattr(django_settings, 'MEDIA_ROOT'):
+                            media_path = os.path.join(django_settings.MEDIA_ROOT, file_obj.file_path)
+                            if os.path.isfile(media_path):
+                                resolved_path = media_path
+                                logger.info(f"✓ Found relative to MEDIA_ROOT: {resolved_path}")
+                        
+                        # Strategy 4: Try removing leading slashes and relative to BASE_DIR
+                        if not resolved_path:
+                            clean_path = file_obj.file_path.lstrip('/')
+                            rel_path = os.path.join(django_settings.BASE_DIR, clean_path)
+                            if os.path.isfile(rel_path):
+                                resolved_path = rel_path
+                                logger.info(f"✓ Found with cleaned path: {resolved_path}")
+                        
+                        # Strategy 5: Search for file in BASE_DIR/static/users
+                        if not resolved_path:
+                            filename = os.path.basename(file_obj.file_path)
+                            static_users_path = os.path.join(django_settings.BASE_DIR, 'static', 'users')
+                            if os.path.exists(static_users_path):
+                                logger.info(f"Searching for {filename} in {static_users_path}")
+                                for root, dirs, filenames in os.walk(static_users_path):
+                                    if filename in filenames:
+                                        found_path = os.path.join(root, filename)
+                                        logger.info(f"✓ Found in directory search: {found_path}")
+                                        resolved_path = found_path
+                                        break
+                        
+                        # Strategy 6: Files were deleted after zipping - look for dataset ZIP
+                        if not resolved_path:
+                            # The dataset ZIP is stored as: static/users/{username}/files/{dataset_name}.zip
+                            # But the files are stored as: static/users/{username}/files/{dataset_name}/{filename}
+                            # So we need to find the ZIP by looking at the file path structure
+                            file_path_parts = file_obj.file_path.replace('\\', '/').split('/')
+                            
+                            # Expected format: ['static', 'users', 'username', 'files', 'dataset_name', ...files...]
+                            if len(file_path_parts) >= 5 and file_path_parts[0] == 'static' and file_path_parts[1] == 'users':
+                                username = file_path_parts[2]
+                                # Get the parent directory and look for ZIP
+                                user_static_path = os.path.join(django_settings.BASE_DIR, 'static', 'users', username, 'files')
+                                
+                                # Find all ZIPs in that directory
+                                if os.path.exists(user_static_path):
+                                    for zip_file in os.listdir(user_static_path):
+                                        if zip_file.endswith('.zip'):
+                                            zip_path = os.path.join(user_static_path, zip_file)
+                                            logger.info(f"Checking ZIP {zip_path} for {file_obj.file_name}")
+                                            
+                                            try:
+                                                with zipfile.ZipFile(zip_path, 'r') as zf_src:
+                                                    # Check if our file is in this ZIP
+                                                    for name_in_zip in zf_src.namelist():
+                                                        if os.path.basename(name_in_zip) == file_obj.file_name or name_in_zip.endswith(file_obj.file_name):
+                                                            logger.info(f"✓ Found {file_obj.file_name} in ZIP: {zip_path}")
+                                                            file_from_zip = {
+                                                                'zip_path': zip_path,
+                                                                'zip_name': name_in_zip,
+                                                                'data': zf_src.read(name_in_zip)
+                                                            }
+                                                            break
+                                            except zipfile.BadZipFile:
+                                                logger.warning(f"Invalid ZIP file: {zip_path}")
+                                                continue
+                                            
+                                            if file_from_zip:
+                                                break
+                        
+                        if file_from_zip:
+                            logger.info(f"Adding file from ZIP: {file_obj.file_name}")
+                            try:
+                                # Create folder structure: dataset_name/filename
+                                arcname = os.path.join(dataset.name.replace('/', '_'), file_obj.file_name)
+                                zf.writestr(arcname, file_from_zip['data'])
+                                files_added += 1
+                                logger.info(f"✓ Added to ZIP as {arcname}")
+                            except Exception as e:
+                                logger.error(f"Error adding file from ZIP {file_from_zip['zip_path']}: {str(e)}")
+                                continue
+                        elif resolved_path:
+                            try:
+                                file_size = os.path.getsize(resolved_path)
+                                logger.info(f"Adding file: {file_obj.file_name} (size: {file_size} bytes)")
+                                
+                                # Create folder structure: dataset_name/filename
+                                arcname = os.path.join(dataset.name.replace('/', '_'), file_obj.file_name)
+                                zf.write(resolved_path, arcname=arcname)
+                                files_added += 1
+                                logger.info(f"✓ Added to ZIP as {arcname}")
+                            except Exception as e:
+                                logger.error(f"Error adding file {resolved_path} to ZIP: {str(e)}")
+                                continue
+                        else:
+                            logger.error(f"✗ File not found: {file_obj.file_name}")
+                            logger.error(f"  Original path: {file_obj.file_path}")
+                            logger.error(f"  Tried (BASE_DIR): {os.path.join(django_settings.BASE_DIR, file_obj.file_path)}")
+                            if hasattr(django_settings, 'MEDIA_ROOT'):
+                                logger.error(f"  Tried (MEDIA_ROOT): {os.path.join(django_settings.MEDIA_ROOT, file_obj.file_path)}")
+                            logger.error(f"  BASE_DIR: {django_settings.BASE_DIR}")
+                            logger.error(f"  Current working dir: {os.getcwd()}")
+            
+            logger.info(f"ZIP creation complete. Total files added: {files_added}")
+            
+            buffer.seek(0)
+            
+            if files_added == 0:
+                logger.warning(f"WARNING: ZIP contains no files for {len(datasets)} dataset(s)")
+            
+            # Create response
+            zip_size = len(buffer.getvalue())
+            response = HttpResponse(buffer.getvalue(), content_type='application/zip')
+            response['Content-Disposition'] = 'attachment; filename="datasets.zip"'
+            response['Content-Length'] = zip_size
+            
+            logger.info(f"Successfully created ZIP download: {zip_size} bytes, {files_added} files")
+            return response
+            
+        except Exception as e:
+            logger.exception(f"Error in BatchDownloadDatasetsView: {str(e)}")
+            return Response(
+                {'error': f'Error creating download: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
 # Dataset Table View
 # Fetches table data from SQLite for displaying in the table viewer
 class DatasetTableView(APIView):
