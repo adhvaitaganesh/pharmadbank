@@ -3,9 +3,9 @@ import { connect } from 'react-redux';
 import DataCard from './DataCard';
 import tag_styles from './tags.module.css';
 import { useNavigate } from 'react-router-dom';
-import { addToCart } from '../../actions/cart';
+
 import { createFolder } from "../../actions/folders";
-import { FaFolderPlus, FaCartPlus, FaDownload, FaSpinner } from 'react-icons/fa';
+import { FaFolderPlus, FaDownload, FaSpinner } from 'react-icons/fa';
 import FolderCreatePopup from './FolderCreatePopup';
 import axios from 'axios';
 
@@ -88,7 +88,7 @@ const DataSetTable = (props) => {
 
     useEffect(() => { return () => { clearTimeout(doubleClickTimeout.current); }; }, []);
 
-    const massAddToCart = () => { selectedDataSets.map((dataset) => { props.addToCart({ 'file_id': dataset.id }); }); };
+
 
     const handleDownloadSelected = async() => {
         if (selectedDataSets.length === 0) { alert('Please select at least one dataset to download.'); return; }
@@ -149,7 +149,6 @@ const DataSetTable = (props) => {
         React.createElement('div', { className: 'd-flex flex-row align-items-center mb-3 gap-2 justify-content-between' },
             React.createElement('div', { className: 'd-flex gap-2' },
                 React.createElement('button', { className: 'btn btn-primary d-flex align-items-center', onClick: handleAddToFolder }, React.createElement(FaFolderPlus, { className: 'me-1' }), ' Add to Folder'),
-                React.createElement('button', { className: 'btn btn-success d-flex align-items-center', onClick: massAddToCart }, React.createElement(FaCartPlus, { className: 'me-1' }), ' Add to Cart'),
                 React.createElement('button', { className: 'btn btn-success d-flex align-items-center', onClick: handleDownloadSelected, disabled: selectedDataSets.length === 0 || isDownloading, style: { opacity: selectedDataSets.length === 0 || isDownloading ? 0.5 : 1 } }, isDownloading ? React.createElement(FaSpinner, { className: 'me-1 spinner-animation' }) : React.createElement(FaDownload, { className: 'me-1' }), ' Download Selected')
             ),
             React.createElement('div', { className: 'd-flex gap-2 align-items-center' },
@@ -164,5 +163,5 @@ const DataSetTable = (props) => {
 };
 
 const mapStateToProps = (state) => { return { auth: state.auth }; };
-const mapDispatchToProps = { addToCart, createFolder };
+const mapDispatchToProps = { createFolder };
 export default connect(mapStateToProps, mapDispatchToProps)(DataSetTable);
