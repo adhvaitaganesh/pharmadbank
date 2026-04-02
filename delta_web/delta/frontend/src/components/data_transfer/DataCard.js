@@ -20,7 +20,7 @@ const DataCard = ({ data, style, isSelected = false, onCheckboxChange = null }) 
     return React.createElement('span', { style: { textDecoration: 'none', color: 'inherit' } },
         React.createElement('div', { className: 'card', style: cardStyle, onMouseEnter: () => setIsHovered(true), onMouseLeave: () => setIsHovered(false), onKeyDown: handleKeyDown, tabIndex: 0, role: 'button' },
             onCheckboxChange && React.createElement('input', { type: 'checkbox', checked: isSelected, onChange: handleCheckboxClick, onClick: (e) => e.stopPropagation(), style: { position: 'absolute', left: '12px', top: '12px', width: '18px', height: '18px', cursor: 'pointer', accentColor: '#1a4fd6', zIndex: 10 } }),
-            React.createElement('div', { className: 'card-body' },
+            React.createElement('div', { className: 'card-body', style: { display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' } },
                 React.createElement('div', { className: 'd-flex justify-content-between align-items-start mb-3', style: { marginLeft: onCheckboxChange ? '28px' : '0' } },
                     React.createElement('div', null,
                         React.createElement('h5', { className: 'card-title' }, data.name),
@@ -40,17 +40,18 @@ const DataCard = ({ data, style, isSelected = false, onCheckboxChange = null }) 
                         file.file_type && React.createElement('span', { style: { fontSize: '0.75rem', padding: '2px 6px', backgroundColor: '#e5e7eb', borderRadius: '3px', color: '#374151' } }, file.file_type.toUpperCase())
                     ))
                 ),
-                React.createElement('div', { className: 'row mt-auto' },
-                    React.createElement('div', { className: 'col-8' },
+                React.createElement('div', { style: { flex: 1 } }),
+                React.createElement('div', { className: 'd-flex justify-content-between align-items-flex-end' },
+                    React.createElement('div', { className: 'flex-grow-1' },
                         React.createElement('strong', null, 'Tags:'),
                         React.createElement('div', { className: 'mt-1' },
                             data.tags.map((tag, index) => React.createElement('div', { className: styles.tag_item, key: index }, React.createElement('span', { className: styles.text }, tag.text)))
                         )
+                    ),
+                    React.createElement('div', { className: 'd-flex align-items-center ms-3' },
+                        React.createElement(FaArrowDown, { className: 'text-muted me-2', style: { fontSize: '1.5rem' } }),
+                        React.createElement('span', { className: 'badge bg-secondary' }, data.download_count)
                     )
-                ),
-                React.createElement('div', { className: 'position-absolute bottom-0 end-0 mb-2 me-2 d-flex align-items-center' },
-                    React.createElement(FaArrowDown, { className: 'text-muted me-2', style: { fontSize: '1.5rem' } }),
-                    React.createElement('span', { className: 'badge bg-secondary' }, data.download_count)
                 )
             )
         )
