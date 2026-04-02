@@ -120,5 +120,10 @@ export const downloadDataset = (id) => (dispatch, getState) =>{
     })
     .catch(err=>{
         console.log(err)
+        if (err.response && err.response.status === 403) {
+            dispatch(createMessage({downloadDatasetError: "Dataset is private. Please contact the owner for access."}));
+        } else {
+            dispatch(createMessage({downloadDatasetError: "Unable to download dataset. Please try again later."}));
+        }
     })
 }

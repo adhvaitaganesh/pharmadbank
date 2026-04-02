@@ -1,18 +1,18 @@
 /************************************************
  * Delta Project
- * 
+ *
  * Authors:
  * Lexington Whalen (@lxaw)
  * Carter Marlowe (@Cmarlowe123)
  * Vince Kolb-Lugo (@vancevince)
  * Blake Seekings (@j-blake-s)
  * Naveen Chithan (@nchithan)
- * 
+ *
  * Organizations.js
- * 
+ *
  * This page displays all organizations registered with the Delta project.
  * Just makes a call to the organizations api to retrieve data and displays it
- * in an OrganizationCard. This page jumps to more detailed pages for 
+ * in an OrganizationCard. This page jumps to more detailed pages for
  * each organization.
  ***********************************************/
 
@@ -74,10 +74,10 @@ const Organizations = (props) => {
         <div className="container" data-testid="organizations-1">
             <div>
                 <h1 className="text-center">
-                    Organizations
+                    Research Groups
                 </h1>
                 <p className="text-center">
-                    Here you can see all organizations registered with Delta. Click an organization to view it.
+                    Here you can see all research groups registered with us. Click a group to view it.
                 </p>
             </div>
             <div className="card p-3 mb-3">

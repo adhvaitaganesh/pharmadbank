@@ -35,6 +35,7 @@ import string
 from django.conf import settings as django_settings
 import os
 
+from django.db.models import Q
 # import necessary rest_framework stuff
 from rest_framework import viewsets, permissions
 from rest_framework.views import APIView

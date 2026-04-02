@@ -20,11 +20,13 @@ import React, { useEffect, useState } from 'react'
 import { connect } from "react-redux"
 import axios from 'axios';
 
+import ConversationTable from '../conversations/ConversationTable';
 import NotificationMessage from './NotificationMessage';
 
 const NotificationMessageIndex = (props) =>{
     // notifications
     const [arrNotifications, setArrNotifications] = useState([]);
+    const [arrConversations, setArrConversations] = useState([]);
 
   // get notifications
   //
@@ -34,11 +36,21 @@ const NotificationMessageIndex = (props) =>{
       setArrNotifications(res.data)
     })
   }
-  const getConverations = () =>{
-    
+
+  // get all user conversations (all past chats)
+  const getConversations = () =>{
+    axios.get('/api/conversation/',{headers:{'Content-Type':'application/json','Authorization': `Token ${props.auth.token}`}})
+    .then((res)=>{
+      setArrConversations(res.data)
+    })
+    .catch((err)=>{
+      console.error('Failed to fetch conversations', err)
+    })
   }
+
     useEffect(()=>{
         getNotifications()
+        getConversations()
     },[]);
 
     return (
@@ -68,6 +80,11 @@ const NotificationMessageIndex = (props) =>{
             </div>
             <div>
               <h1>Past Conversations</h1>
+              {arrConversations.length != 0 ?
+                <ConversationTable convos={arrConversations} currentUsername={props.auth.user?.username} />
+                :
+                <div><p>No past conversations yet!</p></div>
+              }
             </div>
         </div>
     )

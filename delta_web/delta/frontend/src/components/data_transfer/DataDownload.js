@@ -52,7 +52,7 @@ const DataDownload = (props) =>{
                     Search Datasets
                 </h1>
                 <p>
-                    Click on a dataset to view it. From viewing, you can also add the dataset to your cart. You can search datasets by file name or by tags.
+                    Click on a dataset to view it. From viewing, you can also add the dataset to your downloads. You can search datasets by file name or by tags.
                 </p>
             </div>
             <DataSetTable 

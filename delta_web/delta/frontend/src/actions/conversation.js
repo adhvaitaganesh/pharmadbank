@@ -9,11 +9,14 @@ export const addConversation = (dictData) => (dispatch,getState) =>{
     title: text title of convo
     other_user_username: the str username of the other user
     */
-    axios.post('/api/conversation/',dictData,fileTokenConfig(getState))
+    return axios.post('/api/conversation/',dictData,fileTokenConfig(getState))
     .then((res)=>{
         dispatch(createMessage({addConversationSuccess:"Successfully created a conversation."}))
+        return res
     })
     .catch((err)=>{
+        dispatch(createMessage({addConversationError:"Failed to create conversation."}))
+        throw err
     })
 }
 

@@ -83,12 +83,11 @@ export class Register extends Component {
     // form
     return (
       <div className="container">
-        <div className="row">
-          <div className="col">
-            <ImageCarousel />
+        <div className="row justify-content-center">
+          <div className="col-md-6 col-lg-5">
           </div>
 
-          <div className="col">
+          <div className="card card-body mt-5">
             <div className="card card-body mt-5">
               <h2 className="text-center">Register</h2>
               <form onSubmit={this.onSubmit}>
