@@ -6,7 +6,7 @@ import axios from "axios";
 import ReviewForm from "./ReviewForm";
 import Review from "./Review";
 import Dataset from "./Dataset";
-import CSVDataViewer from "./CSVDataViewer";
+import DataPreview from "./DataPreview";
 import FileTypeIcon from "./FileTypeIcon";
 
 const DatasetDetail = props => {
@@ -136,15 +136,13 @@ const DatasetDetail = props => {
             "div", { className: "row mt-4" },
             React.createElement(
                 "div", { className: "col-md-12" },
-                React.createElement(CSVDataViewer, {
+                React.createElement(DataPreview, {
                     initialData: tableData,
-                    title: "📊 Dataset Info Card",
-                    token: props.auth.token,
-                    datasetId: csvFile.id,
-                    fileName: csvFile.name,
-                    dataLoading: dataLoading,
-                    dataError: dataError,
-                    onRefresh: retrieveData
+                    title: "📊 Data Preview",
+                    onDataLoaded: retrieveData,
+                    files: csvFile && csvFile.files ? csvFile.files : [],
+                    datasetId: id,
+                    authToken: props.auth.token
                 })
             )
         ),
