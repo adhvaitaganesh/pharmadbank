@@ -286,6 +286,55 @@ const DataPreview = ({
             }
         };
 
+        // Delete file handler
+        const deleteTabularFile = (file) => {
+            if (window.confirm(`Delete "${file.file_name}"? This cannot be undone.`)) {
+                if (!file.id || !datasetId) {
+                    setError("Cannot delete: File ID or Dataset ID missing");
+                    return;
+                }
+
+                const deleteUrl = `/api/datasets/${datasetId}/files/${file.id}/`;
+                const headers = {};
+                if (authToken) {
+                    headers["Authorization"] = `Token ${authToken}`;
+                }
+
+                fetch(deleteUrl, {
+                    method: 'DELETE',
+                    headers
+                }).then(response => {
+                    if (response.status === 204 || response.ok) {
+                        // Clear data if this file was selected
+                        if (selectedFile && selectedFile.id === file.id) {
+                            setData([]);
+                            setHeaders([]);
+                            setSelectedFile(null);
+                            setLoadedFileName("");
+                        }
+                        setError("");
+
+                        // Trigger a refresh by removing the file from the list
+                        // The parent component should re-fetch the file list
+                        if (onDataLoaded) {
+                            setTimeout(() => {
+                                onDataLoaded({ rows: [], headers: [] });
+                            }, 500);
+                        }
+                    } else {
+                        response.json().then(data => {
+                            setError(`Failed to delete file: ${data.error || 'Unknown error'}`);
+                        }).catch(() => {
+                            setError(`Failed to delete file (HTTP ${response.status})`);
+                        });
+                    }
+                }).catch(err => {
+                    console.error('Error deleting file:', err);
+                    setError(`Error deleting file: ${err.message}`);
+                });
+            }
+        };
+
         // Render with Modern Styling
         return React.createElement(
                 "div", {
@@ -460,7 +509,7 @@ const DataPreview = ({
                             ),
                             React.createElement(
                                 "span", {
-                                    style: { flex: 1, fontSize: "13px" }
+                                    style: { fontSize: "13px", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }
                                 },
                                 file.file_name
                             ),
@@ -469,11 +518,50 @@ const DataPreview = ({
                                     style: {
                                         fontSize: "11px",
                                         color: "#3b82f6",
-                                        fontWeight: 500
+                                        fontWeight: 500,
+                                        marginLeft: "8px"
                                     }
                                 },
                                 "Loading..."
-                            ) : null
+                            ) : null,
+                            React.createElement(
+                                "div", {
+                                    style: {
+                                        marginLeft: "auto",
+                                        zIndex: 10,
+                                        display: "flex"
+                                    },
+                                    onClick: (e) => e.stopPropagation()
+                                },
+                                React.createElement(
+                                    "button", {
+                                        type: "button",
+                                        style: {
+                                            marginLeft: "8px",
+                                            padding: "2px 8px",
+                                            fontSize: "11px",
+                                            border: "none",
+                                            borderRadius: "3px",
+                                            background: "#dc3545",
+                                            color: "#fff",
+                                            cursor: "pointer",
+                                            fontWeight: 500,
+                                            transition: "background 0.15s"
+                                        },
+                                        onMouseEnter: (e) => {
+                                            e.target.style.background = "#c82333";
+                                        },
+                                        onMouseLeave: (e) => {
+                                            e.target.style.background = "#dc3545";
+                                        },
+                                        onClick: (e) => {
+                                            e.stopPropagation();
+                                            deleteTabularFile(file);
+                                        }
+                                    },
+                                    "✕Delete"
+                                )
+                            )
                         );
                     }) : null
                 ) : null,

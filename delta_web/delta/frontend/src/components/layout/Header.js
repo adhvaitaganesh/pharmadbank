@@ -75,7 +75,8 @@ const Header = (props) => {
         <
         Link to = "/dashboard"
         style = {
-            { textDecoration: "none" } } >
+            { textDecoration: "none" }
+        } >
         <
         div >
         <
@@ -88,11 +89,11 @@ const Header = (props) => {
         <
         path d = "M8.707 1.5a1 1 0 0 0-1.414 0L.646 8.146a.5.5 0 0 0 .708.708L2 8.207V13.5A1.5 1.5 0 0 0 3.5 15h9a1.5 1.5 0 0 0 1.5-1.5V8.207l.646.647a.5.5 0 0 0 .708-.708L13 5.793V2.5a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v1.293L8.707 1.5ZM13 7.207V13.5a.5.5 0 0 1-.5.5h-9a.5.5 0 0 1-.5-.5V7.207l5-5 5 5Z" / >
         <
-        /svg> <
-        /div>
+        /svg> < /
+        div >
         Home <
-        /Link> <
-        /span> <
+        /Link> < /
+        span > <
         /li> <
         li className = "nav-item text-center mx-2 mx-lg-1" >
         <
@@ -100,7 +101,8 @@ const Header = (props) => {
         <
         Link to = "/profile/settings"
         style = {
-            { textDecoration: "none" } } >
+            { textDecoration: "none" }
+        } >
         <
         div >
         <
@@ -115,11 +117,11 @@ const Header = (props) => {
         <
         path d = "M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115l.094-.319z" / >
         <
-        /svg> <
-        /div>
+        /svg> < /
+        div >
         Settings <
-        /Link> <
-        /span> <
+        /Link> < /
+        span > <
         /li> <
         li className = "nav-item text-center mx-2 mx-lg-1" >
         <
@@ -127,7 +129,8 @@ const Header = (props) => {
         <
         Link to = "/profile/glance"
         style = {
-            { textDecoration: "none" } } >
+            { textDecoration: "none" }
+        } >
         <
         div >
         <
@@ -143,11 +146,11 @@ const Header = (props) => {
         path fillRule = "evenodd"
         d = "M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8zm8-7a7 7 0 0 0-5.468 11.37C3.242 11.226 4.805 10 8 10s4.757 1.225 5.468 2.37A7 7 0 0 0 8 1z" / >
         <
-        /svg> <
-        /div>
+        /svg> < /
+        div >
         Profile <
-        /Link> <
-        /span> <
+        /Link> < /
+        span > <
         /li> <
         li className = "nav-item text-center mx-2 mx-lg-1" >
         <
@@ -155,15 +158,16 @@ const Header = (props) => {
         <
         Link to = "/data/download"
         style = {
-            { textDecoration: "none" } } >
+            { textDecoration: "none" }
+        } >
         <
         div >
         <
-        i class = "bi bi-search" > < /i> <
-        /div>
+        i className = "bi bi-search" > < /i> < /
+        div >
         Find <
-        /Link> <
-        /span> <
+        /Link> < /
+        span > <
         /li> <
         li className = "nav-item text-center mx-2 mx-lg-1" >
         <
@@ -171,7 +175,8 @@ const Header = (props) => {
         <
         Link to = "/data/upload"
         style = {
-            { textDecoration: "none" } } >
+            { textDecoration: "none" }
+        } >
         <
         div >
         <
@@ -187,11 +192,11 @@ const Header = (props) => {
         <
         path d = "M4.406 3.342A5.53 5.53 0 0 1 8 2c2.69 0 4.923 2 5.166 4.579C14.758 6.804 16 8.137 16 9.773 16 11.569 14.502 13 12.687 13H3.781C1.708 13 0 11.366 0 9.318c0-1.763 1.266-3.223 2.942-3.593.143-.863.698-1.723 1.464-2.383zm.653.757c-.757.653-1.153 1.44-1.153 2.056v.448l-.445.049C2.064 6.805 1 7.952 1 9.318 1 10.785 2.23 12 3.781 12h8.906C13.98 12 15 10.988 15 9.773c0-1.216-1.02-2.228-2.313-2.228h-.5v-.5C12.188 4.825 10.328 3 8 3a4.53 4.53 0 0 0-2.941 1.1z" / >
         <
-        /svg> <
-        /div>
+        /svg> < /
+        div >
         Upload <
-        /Link> <
-        /span> <
+        /Link> < /
+        span > <
         /li> <
         li className = "me-auto nav-item dropdown text-center" >
         <
@@ -199,7 +204,8 @@ const Header = (props) => {
         <
         Link to = "/community/organizations"
         style = {
-            { textDecoration: "none" } } >
+            { textDecoration: "none" }
+        } >
         <
         div >
         <
@@ -212,11 +218,11 @@ const Header = (props) => {
         <
         path d = "M7 14s-1 0-1-1 1-4 5-4 5 3 5 4-1 1-1 1H7Zm4-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm-5.784 6A2.238 2.238 0 0 1 5 13c0-1.355.68-2.75 1.936-3.72A6.325 6.325 0 0 0 5 9c-4 0-5 3-5 4s1 1 1 1h4.216ZM4.5 8a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z" / >
         <
-        /svg> <
-        /div>
+        /svg> < /
+        div >
         Community <
-        /Link> <
-        /span> <
+        /Link> < /
+        span > <
         /li>
 
         { /* LEFT RIGHT SPLIT */ }
@@ -239,11 +245,11 @@ const Header = (props) => {
         <
         path d = "M0 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V4Zm2-1a1 1 0 0 0-1 1v.217l7 4.2 7-4.2V4a1 1 0 0 0-1-1H2Zm13 2.383-4.708 2.825L15 11.105V5.383Zm-.034 6.876-5.64-3.471L8 9.583l-1.326-.795-5.64 3.47A1 1 0 0 0 2 13h12a1 1 0 0 0 .966-.741ZM1 11.105l4.708-2.897L1 5.383v5.722Z" / >
         <
-        /svg> <
-        /div>
+        /svg> < /
+        div >
         Messages <
-        /Link> <
-        /li> <
+        /Link> < /
+        li > <
         li className = "nav-item text-center mx-2 mx-lg-1" >
         <
         Link className = "nav-link"
@@ -261,11 +267,11 @@ const Header = (props) => {
         <
         path d = "M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8zm7.5-6.923c-.67.204-1.335.82-1.887 1.855A7.97 7.97 0 0 0 5.145 4H7.5V1.077zM4.09 4a9.267 9.267 0 0 1 .64-1.539 6.7 6.7 0 0 1 .597-.933A7.025 7.025 0 0 0 2.255 4H4.09zm-.582 3.5c.03-.877.138-1.718.312-2.5H1.674a6.958 6.958 0 0 0-.656 2.5h2.49zM4.847 5a12.5 12.5 0 0 0-.338 2.5H7.5V5H4.847zM8.5 5v2.5h2.99a12.495 12.495 0 0 0-.337-2.5H8.5zM4.51 8.5a12.5 12.5 0 0 0 .337 2.5H7.5V8.5H4.51zm3.99 0V11h2.653c.187-.765.306-1.608.338-2.5H8.5zM5.145 12c.138.386.295.744.468 1.068.552 1.035 1.218 1.65 1.887 1.855V12H5.145zm.182 2.472a6.696 6.696 0 0 1-.597-.933A9.268 9.268 0 0 1 4.09 12H2.255a7.024 7.024 0 0 0 3.072 2.472zM3.82 11a13.652 13.652 0 0 1-.312-2.5h-2.49c.062.89.291 1.733.656 2.5H3.82zm6.853 3.472A7.024 7.024 0 0 0 13.745 12H11.91a9.27 9.27 0 0 1-.64 1.539 6.688 6.688 0 0 1-.597.933zM8.5 12v2.923c.67-.204 1.335-.82 1.887-1.855.173-.324.33-.682.468-1.068H8.5zm3.68-1h2.146c.365-.767.594-1.61.656-2.5h-2.49a13.65 13.65 0 0 1-.312 2.5zm2.802-3.5a6.959 6.959 0 0 0-.656-2.5H12.18c.174.782.282 1.623.312 2.5h2.49zM11.27 2.461c.247.464.462.98.64 1.539h1.835a7.024 7.024 0 0 0-3.072-2.472c.218.284.418.598.597.933zM10.855 4a7.966 7.966 0 0 0-.468-1.068C9.835 1.897 9.17 1.282 8.5 1.077V4h2.355z" / >
         <
-        /svg> <
-        /div>
+        /svg> < /
+        div >
         Notifications <
-        /Link> <
-        /li> <
+        /Link> < /
+        li > <
         li className = "nav-item text-center mx-2 mx-lg-1" >
         <
         div onClick = { props.logout } >
@@ -287,13 +293,13 @@ const Header = (props) => {
         path fillRule = "evenodd"
         d = "M.146 8.354a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L1.707 7.5H10.5a.5.5 0 0 1 0 1H1.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3z" / >
         <
-        /svg> <
-        /div>
+        /svg> < /
+        div >
         Logout <
-        /span> <
-        /div> <
-        /li> <
-        /ul> <
+        /span> < /
+        div > <
+        /li> < /
+        ul > <
         />
     );
     const guestLinks = (
@@ -324,11 +330,11 @@ const Header = (props) => {
         path fillRule = "evenodd"
         d = "M11.854 8.354a.5.5 0 0 0 0-.708l-3-3a.5.5 0 1 0-.708.708L10.293 7.5H1.5a.5.5 0 0 0 0 1h8.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3z" / >
         <
-        /svg> <
-        /div>
+        /svg> < /
+        div >
         Login <
-        /Link> <
-        /span> <
+        /Link> < /
+        span > <
         /li> <
         li className = "nav-item text-center mx-2 mx-lg-1" >
         <
@@ -353,15 +359,15 @@ const Header = (props) => {
         path fillRule = "evenodd"
         d = "M7.646 4.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 5.707V14.5a.5.5 0 0 1-1 0V5.707L5.354 7.854a.5.5 0 1 1-.708-.708l3-3z" / >
         <
-        /svg> <
-        /div>
+        /svg> < /
+        div >
         Register <
-        /Link> <
-        /span> <
-        /div> <
-        /li> <
-        /ul> <
-        />
+        /Link> < /
+        span > <
+        /div> < /
+        li > <
+        /ul> < /
+        >
     );
 
     return ( <
@@ -371,8 +377,8 @@ const Header = (props) => {
         <
         div className = "navbar-collapse"
         id = "navbarToggleExternalContent" > { isAuthenticated ? authLinks : guestLinks } <
-        /div> <
-        /div> <
+        /div> < /
+        div > <
         /nav>
     );
 }
