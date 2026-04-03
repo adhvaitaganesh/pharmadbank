@@ -995,11 +995,11 @@ class DatasetTableView(APIView):
 
     def get(self, request, dataset_id, file_id=None):
         """
-        Parse and return data from a dataset's database table.
+        Parse and return data from a dataset file table.
         
         URL patterns:
-        - /api/dataset_table/{dataset_id}/{file_id}/ - specific file
-        - /api/dataset_table/{dataset_id}/ - dataset default table
+        - /api/dataset_table/{dataset_id}/{file_id}/ - specific file data (USED - file preview)
+        - /api/dataset_table/{dataset_id}/ - dataset default table (UNUSED - no longer called)
         
         Query params:
         - limit: Number of rows to return (default: 500, max: 10000)

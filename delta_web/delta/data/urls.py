@@ -35,7 +35,7 @@ urlpatterns  = [
     path('api/parse_file/', ParseFileView.as_view(), name='ParseFile'),
     path('api/datasets/download/', BatchDownloadDatasetsView.as_view(), name='batch-download-datasets'),
     re_path(r'^api/dataset_table/(?P<dataset_id>\d+)/(?P<file_id>\d+)/?$', DatasetTableView.as_view(), name='dataset-table-file'),
-    re_path(r'^api/dataset_table/(?P<dataset_id>\d+)/?$', DatasetTableView.as_view(), name='dataset-table-alt'),
+    re_path(r'^api/dataset_table/(?P<dataset_id>\d+)/?$', DatasetTableView.as_view(), name='dataset-table-dataset'),
 ]
 
 urlpatterns += router.urls

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { connect } from "react-redux";
 import { getDataset, deleteDataset, downloadDataset } from "../../actions/datasets";
 import { useParams } from "react-router-dom";
@@ -13,49 +13,35 @@ const DatasetDetail = props => {
     const { id } = useParams();
     const [csvFile, setDataset] = useState(null);
     const [arrReviews, setArrReviews] = useState([]);
-    const [tableData, setTableData] = useState(null);
-    const [dataLoading, setDataLoading] = useState(false);
-    const [dataError, setDataError] = useState(null);
+    const dataCache = useRef({}); // Cache: { datasetId: { data, timestamp } }
 
     const retrieveData = () => {
+        // Check cache - don't refetch if we have fresh data (less than 5 min old)
+        if (dataCache.current[id]) {
+            const { data, timestamp } = dataCache.current[id];
+            const age = Date.now() - timestamp;
+            if (age < 5 * 60 * 1000) { // 5 minute cache
+                console.log(`Using cached data for dataset ${id}`);
+                setDataset(data);
+                setArrReviews(data.reviews);
+                return;
+            }
+        }
+
+        console.log(`Fetching fresh data for dataset ${id}`);
         axios.get(`/api/datasets/${id}/`, {
             headers: {
                 "Content-Type": "application/json",
                 Authorization: `Token ${props.auth.token}`,
             },
         }).then(res => {
+            // Store in cache
+            dataCache.current[id] = {
+                data: res.data,
+                timestamp: Date.now()
+            };
             setDataset(res.data);
             setArrReviews(res.data.reviews);
-            setDataError(null);
-
-            // Fetch table data from database if dataset has a table_name
-            if (res.data.table_name) {
-                setDataLoading(true);
-                axios.get(`/api/dataset_table/${id}/`, {
-                    headers: {
-                        "Content-Type": "application/json",
-                        Authorization: `Token ${props.auth.token}`,
-                    },
-                }).then(tableRes => {
-                    if (tableRes.data.success) {
-                        setTableData({
-                            headers: tableRes.data.headers,
-                            rows: tableRes.data.rows
-                        });
-                        setDataError(null);
-                    } else if (tableRes.data.error) {
-                        setDataError(tableRes.data.error);
-                    }
-                    setDataLoading(false);
-                }).catch(err => {
-                    console.error("Failed to fetch table data:", err);
-                    setDataError("Failed to load table data");
-                    setDataLoading(false);
-                });
-            } else {
-                setTableData(null);
-                setDataLoading(false);
-            }
         });
     };
 
@@ -137,9 +123,9 @@ const DatasetDetail = props => {
             React.createElement(
                 "div", { className: "col-md-12" },
                 React.createElement(DataPreview, {
-                    initialData: tableData,
+                    initialData: null,
                     title: "📊 Data Preview",
-                    onDataLoaded: retrieveData,
+                    onDataLoaded: null, // Null to prevent redundant /api/datasets/{id}/ calls on file selection
                     files: csvFile && csvFile.files ? csvFile.files : [],
                     datasetId: id,
                     authToken: props.auth.token
