@@ -16,10 +16,6 @@ const Dataset = props => {
     const [tableData, setTableData] = useState(null);
     const [loadingTable, setLoadingTable] = useState(false);
     const [showTable, setShowTable] = useState(false);
-    const [dragActive, setDragActive] = useState(false);
-    const [uploading, setUploading] = useState(false);
-    const [uploadError, setUploadError] = useState("");
-    const [uploadSuccess, setUploadSuccess] = useState("");
     const [toast, setToast] = useState({ visible: false, message: "", color: "#198754" });
 
 
@@ -104,52 +100,6 @@ const Dataset = props => {
         return { bg: "#dee2e6", color: "#495057" };
     };
 
-    const handleDrag = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setDragActive(e.type === "dragenter" || e.type === "dragover");
-    };
-
-    const handleDrop = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setDragActive(false);
-        if (e.dataTransfer.files && e.dataTransfer.files[0]) handleFileUpload(e.dataTransfer.files[0]);
-    };
-
-    const handleFileChange = (e) => {
-        if (e.target.files && e.target.files[0]) handleFileUpload(e.target.files[0]);
-    };
-
-    const handleFileUpload = (file) => {
-        // Validate image file
-        if (!isImageFile(file.name)) {
-            setUploadError("Please upload only image files (JPG, PNG, GIF, WebP, SVG, BMP)");
-            showToast("Invalid file type. Images only.", "#dc3545");
-            return;
-        }
-
-        setUploading(true);
-        setUploadError("");
-        setUploadSuccess("");
-        const formData = new FormData();
-        formData.append("file", file);
-        formData.append("dataset_id", props.data.id);
-        axios.post(`/api/datasets/${props.data.id}/upload/`, formData, {
-            headers: {
-                "Content-Type": "multipart/form-data",
-                Authorization: `Token ${props.auth.token}`
-            }
-        }).then(() => {
-            setUploadSuccess("Image uploaded successfully.");
-            showToast("Image uploaded successfully", "#198754");
-        }).catch(() => {
-            setUploadError("Upload failed. Please try again.");
-            showToast("Upload failed", "#dc3545");
-        }).finally(() => setUploading(false));
-    };
-
-
     // prettier-ignore
     return ( <
         div className = "card m-2 p-3" >
@@ -174,283 +124,236 @@ const Dataset = props => {
         <
         div > { props.data.description } < /div>
 
+        <
+        div className = "mt-3" >
+        <
+        h6 > Tags < /h6> <
+        div className = "mb-2" > {
+            props.data.tags.map((objTag, index) => ( <
+                div className = { tag_styles.tag_item }
+                key = { index } >
+                <
+                span className = { tag_styles.text } > { objTag.text } < /span> < /
+                div >
+            ))
+        } <
+        /div> < /
+        div >
+
         {
+            getImageFiles().length > 0 && ( <
+                div style = {
+                    { marginTop: "18px" }
+                } >
+                <
+                div style = {
+                    { fontSize: "12px", fontWeight: 600, color: "#6c757d", marginBottom: "8px", textTransform: "uppercase", letterSpacing: ".04em" }
+                } >
+                Images({ getImageFiles().length }) <
+                /div> {
+                getImageFiles().map((file, idx) => {
+                        const ext = getFileExt(file.file_name);
+                        const badgeColor = getExtBadgeColor(ext);
+                        return ( <
+                                div key = { idx }
+                                onClick = {
+                                    () => openFile(file)
+                                }
+                                style = {
+                                    {
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: "10px",
+                                        padding: "7px 10px",
+                                        background: activeFile && activeFile.id === file.id ? "#e9f0ff" : "#f8f9fa",
+                                        border: activeFile && activeFile.id === file.id ? "1px solid #b6c8fb" : "1px solid #e9ecef",
+                                        borderRadius: "4px",
+                                        marginBottom: "4px",
+                                        fontSize: "13px",
+                                        color: "#343a40",
+                                        cursor: "pointer",
+                                        transition: "background .12s, border-color .12s",
+                                        userSelect: "none"
+                                    }
+                                }
+                                onMouseEnter = {
+                                    (e) => {
+                                        if (!(activeFile && activeFile.id === file.id)) {
+                                            e.currentTarget.style.background = "#e9f0ff";
+                                            e.currentTarget.style.borderColor = "#b6c8fb";
+                                        }
+                                    }
+                                }
+                                onMouseLeave = {
+                                    (e) => {
+                                        if (!(activeFile && activeFile.id === file.id)) {
+                                            e.currentTarget.style.background = "#f8f9fa";
+                                            e.currentTarget.style.borderColor = "#e9ecef";
+                                        }
+                                    }
+                                } >
+                                <
+                                FileTypeIcon filename = { file.file_name }
+                                width = { 16 }
+                                height = { 16 }
+                                style = {
+                                    { flexShrink: 0 }
+                                }
+                                /> <
+                                span style = {
+                                    {
+                                        fontSize: "10px",
+                                        padding: "2px 6px",
+                                        borderRadius: "3px",
+                                        fontWeight: 700,
+                                        textTransform: "uppercase",
+                                        flexShrink: 0,
+                                        background: badgeColor.bg,
+                                        color: badgeColor.color
+                                    }
+                                } > { ext } <
+                                /span> <
+                                span style = {
+                                    { flex: 1 }
+                                } > { file.file_name } < /span> {
+                                canEdit && ( <
+                                    button onClick = {
+                                        (e) => {
+                                            e.stopPropagation();
+                                            deleteFile(file.id);
+                                        }
+                                    }
+                                    style = {
+                                        {
+                                            marginLeft: "8px",
+                                            padding: "2px 8px",
+                                            fontSize: "11px",
+                                            border: "none",
+                                            borderRadius: "3px",
+                                            background: "#dc3545",
+                                            color: "#fff",
+                                            cursor: "pointer",
+                                            fontWeight: 500,
+                                            transition: "background 0.15s"
+                                        }
+                                    }
+                                    onMouseEnter = {
+                                        (e) => (e.target.style.background = "#c82333")
+                                    }
+                                    onMouseLeave = {
+                                        (e) => (e.target.style.background = "#dc3545")
+                                    } > ✕Delete <
+                                    /button>
+                                )
+                            } <
+                            /div>
+                    );
+                })
+        } {
             canEdit && ( <
-                div onDragEnter = { handleDrag }
-                onDragOver = { handleDrag }
-                onDragLeave = { handleDrag }
-                onDrop = { handleDrop }
-                style = {
+                div style = {
                     {
-                        border: dragActive ? "2px dashed #7c3aed" : "2px dashed #ccc",
-                        borderRadius: 8,
-                        padding: 24,
-                        marginTop: 16,
-                        marginBottom: 16,
-                        background: dragActive ? "#f3f4f6" : "#fff",
-                        textAlign: "center",
-                        transition: "border 0.2s, background 0.2s"
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                        padding: "8px 10px",
+                        background: "#f8f9fa",
+                        border: "1px solid #e9ecef",
+                        borderRadius: "4px",
+                        marginTop: "8px",
+                        justifyContent: "flex-end"
                     }
                 } >
                 <
-                input type = "file"
+                Link to = { `/datasets/${props.data.id}/edit` }
+                className = "btn btn-primary me-2"
                 style = {
-                    { display: "none" }
-                }
-                id = "fileUploadInput"
-                onChange = { handleFileChange }
-                disabled = { uploading }
-                accept = "image/*" /
-                >
-                <
-                label htmlFor = "fileUploadInput"
-                style = {
-                    { cursor: uploading ? "not-allowed" : "pointer" }
+                    { marginBottom: 0 }
                 } >
-                <
-                div > { uploading ? "Uploading..." : dragActive ? "Drop image here to upload" : "Drag & drop an image here, or click to select" } <
-                /div> < /
-                label > {
-                    uploadError && < div style = {
-                        { color: "#dc2626", marginTop: 8 }
-                    } > { uploadError } < /div>} {
-                    uploadSuccess && < div style = {
-                        { color: "#16a34a", marginTop: 8 }
-                    } > { uploadSuccess } < /div>} < /
-                    div >
-                )
-            }
+                Edit <
+                /Link> <
+                button onClick = { clickDelete }
+                className = "btn btn-danger"
+                style = {
+                    { marginBottom: 0 }
+                } >
+                Delete <
+                /button> < /
+                div >
+            )
+        } <
+        /div>
+    )
+}
 
-            <
-            div className = "mt-3" >
-                <
-                h6 > Tags < /h6> <
-            div className = "mb-2" > {
-                    props.data.tags.map((objTag, index) => ( <
-                        div className = { tag_styles.tag_item }
-                        key = { index } >
-                        <
-                        span className = { tag_styles.text } > { objTag.text } < /span> < /
-                        div >
-                    ))
-                } <
-                /div> < /
-            div >
-
-                {
-                    getImageFiles().length > 0 && ( <
-                        div style = {
-                            { marginTop: "18px" }
-                        } >
-                        <
-                        div style = {
-                            { fontSize: "12px", fontWeight: 600, color: "#6c757d", marginBottom: "8px", textTransform: "uppercase", letterSpacing: ".04em" }
-                        } >
-                        Images({ getImageFiles().length }) <
-                        /div> {
-                        getImageFiles().map((file, idx) => {
-                                const ext = getFileExt(file.file_name);
-                                const badgeColor = getExtBadgeColor(ext);
-                                return ( <
-                                        div key = { idx }
-                                        onClick = {
-                                            () => openFile(file)
-                                        }
-                                        style = {
-                                            {
-                                                display: "flex",
-                                                alignItems: "center",
-                                                gap: "10px",
-                                                padding: "7px 10px",
-                                                background: activeFile && activeFile.id === file.id ? "#e9f0ff" : "#f8f9fa",
-                                                border: activeFile && activeFile.id === file.id ? "1px solid #b6c8fb" : "1px solid #e9ecef",
-                                                borderRadius: "4px",
-                                                marginBottom: "4px",
-                                                fontSize: "13px",
-                                                color: "#343a40",
-                                                cursor: "pointer",
-                                                transition: "background .12s, border-color .12s",
-                                                userSelect: "none"
-                                            }
-                                        }
-                                        onMouseEnter = {
-                                            (e) => {
-                                                if (!(activeFile && activeFile.id === file.id)) {
-                                                    e.currentTarget.style.background = "#e9f0ff";
-                                                    e.currentTarget.style.borderColor = "#b6c8fb";
-                                                }
-                                            }
-                                        }
-                                        onMouseLeave = {
-                                            (e) => {
-                                                if (!(activeFile && activeFile.id === file.id)) {
-                                                    e.currentTarget.style.background = "#f8f9fa";
-                                                    e.currentTarget.style.borderColor = "#e9ecef";
-                                                }
-                                            }
-                                        } >
-                                        <
-                                        FileTypeIcon filename = { file.file_name }
-                                        width = { 16 }
-                                        height = { 16 }
-                                        style = {
-                                            { flexShrink: 0 }
-                                        }
-                                        /> <
-                                        span style = {
-                                            {
-                                                fontSize: "10px",
-                                                padding: "2px 6px",
-                                                borderRadius: "3px",
-                                                fontWeight: 700,
-                                                textTransform: "uppercase",
-                                                flexShrink: 0,
-                                                background: badgeColor.bg,
-                                                color: badgeColor.color
-                                            }
-                                        } > { ext } <
-                                        /span> <
-                                        span style = {
-                                            { flex: 1 }
-                                        } > { file.file_name } < /span> {
-                                        canEdit && ( <
-                                            button onClick = {
-                                                (e) => {
-                                                    e.stopPropagation();
-                                                    deleteFile(file.id);
-                                                }
-                                            }
-                                            style = {
-                                                {
-                                                    marginLeft: "8px",
-                                                    padding: "2px 8px",
-                                                    fontSize: "11px",
-                                                    border: "none",
-                                                    borderRadius: "3px",
-                                                    background: "#dc3545",
-                                                    color: "#fff",
-                                                    cursor: "pointer",
-                                                    fontWeight: 500,
-                                                    transition: "background 0.15s"
-                                                }
-                                            }
-                                            onMouseEnter = {
-                                                (e) => (e.target.style.background = "#c82333")
-                                            }
-                                            onMouseLeave = {
-                                                (e) => (e.target.style.background = "#dc3545")
-                                            } > ✕Delete <
-                                            /button>
-                                        )
-                                    } <
-                                    /div>
-                            );
-                        })
-                } {
-                    canEdit && ( <
-                        div style = {
-                            {
-                                display: "flex",
-                                alignItems: "center",
-                                gap: "8px",
-                                padding: "8px 10px",
-                                background: "#f8f9fa",
-                                border: "1px solid #e9ecef",
-                                borderRadius: "4px",
-                                marginTop: "8px",
-                                justifyContent: "flex-end"
-                            }
-                        } >
-                        <
-                        Link to = { `/datasets/${props.data.id}/edit` }
-                        className = "btn btn-primary me-2"
-                        style = {
-                            { marginBottom: 0 }
-                        } >
-                        Edit <
-                        /Link> <
-                        button onClick = { clickDelete }
-                        className = "btn btn-danger"
-                        style = {
-                            { marginBottom: 0 }
-                        } >
-                        Delete <
-                        /button> < /
-                        div >
-                    )
-                } <
-                /div>
-        )
-    }
-
-    {
-        showTable && activeFile && tableData && ( <
-            div style = {
-                { marginTop: "24px", marginBottom: "24px", textAlign: "center" }
-            } >
-            <
-            img src = { tableData.image_url || `${window.location.origin}/api/files/${activeFile.id}/` }
-            alt = { activeFile.file_name }
-            style = {
-                {
-                    maxWidth: "100%",
-                    maxHeight: "600px",
-                    borderRadius: "8px",
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-                    border: "1px solid #e9ecef"
-                }
-            }
-            onError = {
-                (e) => {
-                    e.target.src = "/api/media/" + activeFile.file_path;
-                }
-            }
-            /> <
-            p style = {
-                { marginTop: "12px", fontSize: "14px", color: "#6c757d" }
-            } > { activeFile.file_name } < /p> < /
-            div >
-        )
-    } <
-    /div>
-
-    <
-    div style = {
-            {
-                position: "fixed",
-                bottom: "24px",
-                left: "50%",
-                transform: "translateX(-50%)",
-                background: "#212529",
-                color: "#fff",
-                padding: "9px 18px",
-                borderRadius: "6px",
-                fontSize: "13px",
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                opacity: toast.visible ? 1 : 0,
-                pointerEvents: toast.visible ? "auto" : "none",
-                transition: "opacity .2s",
-                zIndex: 9999,
-                whiteSpace: "nowrap",
-                boxShadow: "0 4px 16px rgba(0,0,0,.2)"
-            }
+{
+    showTable && activeFile && tableData && ( <
+        div style = {
+            { marginTop: "24px", marginBottom: "24px", textAlign: "center" }
         } >
         <
-        span style = {
+        img src = { tableData.image_url || `${window.location.origin}/api/files/${activeFile.id}/` }
+        alt = { activeFile.file_name }
+        style = {
             {
-                width: "7px",
-                height: "7px",
-                borderRadius: "50%",
-                flexShrink: 0,
-                background: toast.color
+                maxWidth: "100%",
+                maxHeight: "600px",
+                borderRadius: "8px",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+                border: "1px solid #e9ecef"
             }
         }
-    /> <
-    span > { toast.message } < /span> < /
-    div > <
-        /div>
+        onError = {
+            (e) => {
+                e.target.src = "/api/media/" + activeFile.file_path;
+            }
+        }
+        /> <
+        p style = {
+            { marginTop: "12px", fontSize: "14px", color: "#6c757d" }
+        } > { activeFile.file_name } < /p> < /
+        div >
+    )
+} <
+/div>
+
+<
+div style = {
+        {
+            position: "fixed",
+            bottom: "24px",
+            left: "50%",
+            transform: "translateX(-50%)",
+            background: "#212529",
+            color: "#fff",
+            padding: "9px 18px",
+            borderRadius: "6px",
+            fontSize: "13px",
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            opacity: toast.visible ? 1 : 0,
+            pointerEvents: toast.visible ? "auto" : "none",
+            transition: "opacity .2s",
+            zIndex: 9999,
+            whiteSpace: "nowrap",
+            boxShadow: "0 4px 16px rgba(0,0,0,.2)"
+        }
+    } >
+    <
+    span style = {
+        {
+            width: "7px",
+            height: "7px",
+            borderRadius: "50%",
+            flexShrink: 0,
+            background: toast.color
+        }
+    }
+/> <
+span > { toast.message } < /span> < /
+div > <
+    /div>
 );
 };
 
