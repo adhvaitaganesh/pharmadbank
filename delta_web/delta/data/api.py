@@ -1177,3 +1177,118 @@ class DatasetTableView(APIView):
             return Response({
                 'error': f'Server error: {str(e)}',
             }, status=500)
+
+    def put(self, request, dataset_id, file_id=None, row_id=None):
+        """
+        Update a single row in a dataset file table.
+        
+        URL pattern: /api/dataset_table/{dataset_id}/{file_id}/{row_id}/
+        
+        Request body: JSON object with column names as keys and updated values
+        Example: {"name": "John Smith", "age": 30}
+        """
+        try:
+            # Validate parameters
+            try:
+                dataset_id = int(dataset_id)
+                file_id = int(file_id) if file_id else None
+                row_id = int(row_id) if row_id else None
+            except (ValueError, TypeError):
+                logger.warning(f"Invalid parameter types: dataset_id={dataset_id}, file_id={file_id}, row_id={row_id}")
+                return Response({'error': 'Invalid parameter format'}, status=400)
+
+            if not file_id or row_id is None:
+                return Response({'error': 'file_id and row_id are required'}, status=400)
+
+            # Fetch dataset
+            try:
+                dataset = DataSet.objects.get(id=dataset_id)
+            except DataSet.DoesNotExist:
+                logger.warning(f"Dataset {dataset_id} not found")
+                return Response({'error': f'Dataset {dataset_id} not found'}, status=404)
+
+            # Check permissions: only owner can edit
+            if dataset.author != request.user:
+                logger.warning(f"User {request.user.id} denied edit permission to dataset {dataset_id}")
+                return Response({'error': 'Permission denied - only dataset owner can edit'}, status=403)
+
+            # Get file object
+            try:
+                file_obj = File.objects.get(id=file_id, dataset=dataset)
+                table_name = file_obj.table_name
+                logger.info(f"File {file_id} found for dataset {dataset_id}")
+            except File.DoesNotExist:
+                logger.warning(f"File {file_id} not found in dataset {dataset_id}")
+                return Response({'error': f'File {file_id} not found'}, status=404)
+
+            if not table_name:
+                return Response({'error': 'File data not available'}, status=404)
+
+            # Get updated row data from request
+            updated_row = request.data
+            if not updated_row:
+                return Response({'error': 'No data provided in request body'}, status=400)
+
+            # Update row in database using ROWID
+            db_path = django_settings.DATABASES['default']['NAME']
+
+            try:
+                conn = sqlite3.connect(db_path)
+                cursor = conn.cursor()
+
+                # Get the ROWID for the row at this index
+                # Use OFFSET to get the specific row
+                cursor.execute(f'SELECT ROWID FROM "{table_name}" LIMIT 1 OFFSET ?', (row_id,))
+                result = cursor.fetchone()
+                
+                if not result:
+                    logger.warning(f"Row index {row_id} not found in table {table_name}")
+                    return Response({'error': f'Row {row_id} not found'}, status=404)
+
+                actual_rowid = result[0]
+
+                # Build UPDATE query dynamically from the updated_row dict
+                columns = list(updated_row.keys())
+                values = [updated_row[col] for col in columns]
+                
+                # Prepare update statement
+                set_clause = ', '.join([f'"{col}" = ?' for col in columns])
+                update_query = f'UPDATE "{table_name}" SET {set_clause} WHERE ROWID = ?'
+                
+                cursor.execute(update_query, values + [actual_rowid])
+                conn.commit()
+
+                # Fetch and return the updated row
+                cursor.execute(f'SELECT * FROM "{table_name}" WHERE ROWID = ?', (actual_rowid,))
+                columns_list = [description[0] for description in cursor.description]
+                updated_row_data = dict(zip(columns_list, cursor.fetchone()))
+
+                conn.close()
+
+                logger.info(f"Successfully updated row {row_id} (ROWID {actual_rowid}) in table {table_name}")
+
+                return Response({
+                    'success': True,
+                    'message': f'Row {row_id} updated successfully',
+                    'row': updated_row_data,
+                    'dataset_id': dataset_id,
+                    'file_id': file_id,
+                    'row_id': row_id
+                }, status=200)
+
+            except sqlite3.OperationalError as e:
+                logger.error(f"Database update failed for table '{table_name}': {str(e)}")
+                return Response({
+                    'error': f'Failed to update row: {str(e)}',
+                    'table_name': table_name
+                }, status=500)
+            except Exception as e:
+                logger.error(f"Unexpected error updating row: {str(e)}")
+                conn.close() if 'conn' in locals() else None
+                raise
+
+        except Exception as e:
+            logger.exception(f"Unexpected error in DatasetTableView.put(): {str(e)}")
+            return Response({
+                'error': f'Server error: {str(e)}',
+            }, status=500)

@@ -98,6 +98,11 @@ const DataPreview = ({
         const [popupRowCount, setPopupRowCount] = useState(0);
         const [filesList, setFilesList] = useState(files);
 
+        // State for table edit mode
+        const [isEditMode, setIsEditMode] = useState(false);
+        const [editedData, setEditedData] = useState({});
+        const [isSavingEdits, setIsSavingEdits] = useState(false);
+
         const abortControllerRef = useRef(null);
         const rowsPerPage = 10;
 
@@ -350,6 +355,96 @@ const DataPreview = ({
             }
         };
 
+        // Table edit mode handlers
+        const enterEditMode = () => {
+            // Initialize editedData with current data
+            const editMap = {};
+            data.forEach((row, idx) => {
+                editMap[idx] = {...row };
+            });
+            setEditedData(editMap);
+            setIsEditMode(true);
+            setError("");
+        };
+
+        const exitEditMode = () => {
+            setIsEditMode(false);
+            setEditedData({});
+        };
+
+        const updateCell = (rowIndex, column, value) => {
+            setEditedData(prev => ({
+                ...prev,
+                [rowIndex]: {
+                    ...prev[rowIndex],
+                    [column]: value
+                }
+            }));
+        };
+
+        const saveAllChanges = async() => {
+                if (!selectedFile) {
+                    setError("No file selected for editing");
+                    return;
+                }
+
+                setIsSavingEdits(true);
+                setError("");
+
+                try {
+                    // Save each modified row to backend
+                    const rowsToSave = Object.entries(editedData).filter(([idx, editedRow]) => {
+                        // Only save rows that actually changed
+                        return JSON.stringify(editedRow) !== JSON.stringify(data[idx]);
+                    });
+
+                    let successCount = 0;
+                    for (const [idx, editedRow] of rowsToSave) {
+                        const rowIndex = parseInt(idx);
+                        const updateUrl = `/api/dataset_table/${datasetId}/${selectedFile.id}/${rowIndex}/`;
+                        const requestHeaders = {
+                            "Content-Type": "application/json"
+                        };
+                        if (authToken) {
+                            requestHeaders["Authorization"] = `Token ${authToken}`;
+                        }
+
+                        const response = await fetch(updateUrl, {
+                            method: "PUT",
+                            headers: requestHeaders,
+                            body: JSON.stringify(editedRow)
+                        });
+
+                        if (!response.ok) {
+                            const errorData = await response.json();
+                            throw new Error(`Row ${rowIndex}: ${errorData.error || `HTTP ${response.status}`}`);
+                    }
+
+                    successCount++;
+                }
+
+                // Update local data
+                const newData = [...data];
+                Object.entries(editedData).forEach(([idx, editedRow]) => {
+                    newData[parseInt(idx)] = editedRow;
+                });
+                setData(newData);
+
+                // Exit edit mode and show success
+                exitEditMode();
+                setPopupFileName(`${successCount} row(s) saved`);
+                setPopupRowCount(data.length);
+                setShowPopup(true);
+                setTimeout(() => setShowPopup(false), 3000);
+
+            } catch (err) {
+                console.error("Error saving changes:", err);
+                setError(`Failed to save changes: ${err.message}`);
+            } finally {
+                setIsSavingEdits(false);
+            }
+        };
+
         // Render with Modern Styling
         return React.createElement(
                 "div", {
@@ -430,7 +525,98 @@ const DataPreview = ({
                                 minWidth: 150,
                                 outline: "none"
                             }
-                        })
+                        }),
+                        // Edit/Save mode buttons
+                        data.length > 0 ? React.createElement(
+                            "div", {
+                                style: { display: "flex", gap: 6 }
+                            },
+                            !isEditMode ? React.createElement(
+                                "button", {
+                                    type: "button",
+                                    onClick: enterEditMode,
+                                    disabled: isEditMode || !selectedFile,
+                                    style: {
+                                        padding: "8px 16px",
+                                        border: "none",
+                                        borderRadius: 6,
+                                        background: "#f59e0b",
+                                        color: "#fff",
+                                        fontSize: 12,
+                                        fontWeight: 600,
+                                        cursor: !selectedFile || isEditMode ? "not-allowed" : "pointer",
+                                        transition: "background 0.15s",
+                                        opacity: !selectedFile || isEditMode ? 0.6 : 1
+                                    },
+                                    onMouseEnter: (e) => {
+                                        if (selectedFile && !isEditMode) e.target.style.background = "#d97706";
+                                    },
+                                    onMouseLeave: (e) => {
+                                        e.target.style.background = "#f59e0b";
+                                    }
+                                },
+                                "✎ Edit Table"
+                            ) : React.createElement(
+                                React.Fragment,
+                                null,
+                                React.createElement(
+                                    "button", {
+                                        type: "button",
+                                        onClick: saveAllChanges,
+                                        disabled: isSavingEdits,
+                                        style: {
+                                            padding: "8px 16px",
+                                            border: "none",
+                                            borderRadius: 6,
+                                            background: "#10b981",
+                                            color: "#fff",
+                                            fontSize: 12,
+                                            fontWeight: 600,
+                                            cursor: isSavingEdits ? "not-allowed" : "pointer",
+                                            transition: "background 0.15s",
+                                            opacity: isSavingEdits ? 0.7 : 1,
+                                            display: "flex",
+                                            alignItems: "center",
+                                            gap: 6
+                                        },
+                                        onMouseEnter: (e) => {
+                                            if (!isSavingEdits) e.target.style.background = "#059669";
+                                        },
+                                        onMouseLeave: (e) => {
+                                            e.target.style.background = "#10b981";
+                                        }
+                                    },
+                                    isSavingEdits ? React.createElement("span", { style: { display: "inline-block", width: 12, height: 12, border: "2px solid #fff", borderRadius: "50%", borderTopColor: "transparent", animation: "spin 0.6s linear infinite" } }) : null,
+                                    isSavingEdits ? "Saving..." : "💾 Save"
+                                ),
+                                React.createElement(
+                                    "button", {
+                                        type: "button",
+                                        onClick: exitEditMode,
+                                        disabled: isSavingEdits,
+                                        style: {
+                                            padding: "8px 16px",
+                                            border: "1px solid #e2e8f0",
+                                            borderRadius: 6,
+                                            background: "#f3f4f6",
+                                            color: "#475569",
+                                            fontSize: 12,
+                                            fontWeight: 600,
+                                            cursor: isSavingEdits ? "not-allowed" : "pointer",
+                                            transition: "background 0.15s",
+                                            opacity: isSavingEdits ? 0.6 : 1
+                                        },
+                                        onMouseEnter: (e) => {
+                                            if (!isSavingEdits) e.target.style.background = "#e5e7eb";
+                                        },
+                                        onMouseLeave: (e) => {
+                                            e.target.style.background = "#f3f4f6";
+                                        }
+                                    },
+                                    "Cancel"
+                                )
+                            )
+                        ) : null
                     )
                 ),
 
@@ -680,27 +866,49 @@ const DataPreview = ({
                                     )
                                 )
                             )
-                        ),
-                        React.createElement(
-                            "tbody",
-                            null,
-                            paginated.map((row, rowIdx) =>
-                                React.createElement(
-                                    "tr", {
-                                        key: rowIdx,
-                                        style: {
-                                            borderBottom: "1px solid #f1f5f9",
-                                            background: rowIdx % 2 === 0 ? "#f9fafb" : "#fff",
-                                            transition: "background 0.2s"
-                                        }
-                                    },
-                                    headers.map((header) =>
-                                        React.createElement(
-                                            "td", {
-                                                key: `${rowIdx}-${header}`,
+                        )
+                    ),
+                    React.createElement(
+                        "tbody",
+                        null,
+                        paginated.map((row, rowIdx) => {
+                            const actualRowIndex = (currentPage - 1) * rowsPerPage + rowIdx;
+                            const editRow = editedData[actualRowIndex] || row;
+                            
+                            return React.createElement(
+                                "tr", {
+                                    key: rowIdx,
+                                    style: {
+                                        borderBottom: "1px solid #f1f5f9",
+                                        background: rowIdx % 2 === 0 ? "#f9fafb" : "#fff",
+                                        transition: "background 0.2s"
+                                    }
+                                },
+                                headers.map((header) =>
+                                    React.createElement(
+                                        "td", {
+                                            key: `${rowIdx}-${header}`,
+                                            style: {
+                                                padding: isEditMode ? "8px" : "12px 16px",
+                                                color: "#334155"
+                                            }
+                                        },
+                                        isEditMode ? React.createElement("input", {
+                                            type: "text",
+                                            value: editRow[header] || "",
+                                            onChange: (e) => updateCell(actualRowIndex, header, e.target.value),
+                                            style: {
+                                                width: "100%",
+                                                padding: "6px 8px",
+                                                border: "1px solid #cbd5e1",
+                                                borderRadius: 4,
+                                                fontSize: 12,
+                                                fontFamily: "inherit",
+                                                boxSizing: "border-box"
+                                            }
+                                        }) : React.createElement(
+                                            "div", {
                                                 style: {
-                                                    padding: "12px 16px",
-                                                    color: "#334155",
                                                     maxWidth: 300,
                                                     overflow: "hidden",
                                                     textOverflow: "ellipsis",
@@ -712,8 +920,8 @@ const DataPreview = ({
                                         )
                                     )
                                 )
-                            )
-                        )
+                            );
+                        })
                     )
                 ) : null,
 

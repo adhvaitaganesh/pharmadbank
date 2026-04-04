@@ -34,6 +34,8 @@ router.register('api/folder',ViewsetFolder,'Folders')
 urlpatterns  = [
     path('api/parse_file/', ParseFileView.as_view(), name='ParseFile'),
     path('api/datasets/download/', BatchDownloadDatasetsView.as_view(), name='batch-download-datasets'),
+    # Row update endpoint (must come BEFORE file endpoint due to regex matching)
+    re_path(r'^api/dataset_table/(?P<dataset_id>\d+)/(?P<file_id>\d+)/(?P<row_id>\d+)/?$', DatasetTableView.as_view(), name='dataset-table-row'),
     re_path(r'^api/dataset_table/(?P<dataset_id>\d+)/(?P<file_id>\d+)/?$', DatasetTableView.as_view(), name='dataset-table-file'),
     re_path(r'^api/dataset_table/(?P<dataset_id>\d+)/?$', DatasetTableView.as_view(), name='dataset-table-dataset'),
 ]
