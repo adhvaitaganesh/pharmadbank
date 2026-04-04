@@ -1,12 +1,11 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 import styles from "./tags.module.css";
 import { FaStar, FaArrowDown, FaFile, FaFileExcel, FaFilePdf, FaFileImage, FaFileCode } from 'react-icons/fa';
 
 const DataCard = ({ data, style, isSelected = false, onCheckboxChange = null }) => {
-    const [isHovered, setIsHovered] = useState(false);
-    const cardStyle = { transition: 'all 0.3s ease', height: '20rem', width: '26rem', margin: '0.5rem', position: 'relative', border: isSelected ? '3px solid #1a4fd6' : '1px solid rgba(0,0,0,0.125)', boxShadow: isSelected ? '0 0 0 3px rgba(26, 79, 214, 0.1)' : isHovered ? '0 4px 12px rgba(0,0,0,0.1)' : '0 2px 4px rgba(0,0,0,0.06)', cursor: 'pointer', ...style };
-    const descriptionStyle = { height: '4rem', overflowY: 'auto', paddingRight: '1rem' };
+    const descriptionStyle = { height: '3rem', overflowY: 'auto', paddingRight: '0.5rem', fontSize: '0.9rem' };
+    const cardStyle = { height: '20rem', width: '26rem', margin: '0.5rem', position: 'relative', border: isSelected ? '3px solid #1a4fd6' : '1px solid rgba(0,0,0,0.125)', boxShadow: isSelected ? '0 0 0 3px rgba(26, 79, 214, 0.1)' : '0 2px 4px rgba(0,0,0,0.06)', cursor: 'pointer', ...style };
     const getFileTypeIcon = (fileName) => {
         if (!fileName) return React.createElement(FaFile, { size: 16 });
         const ext = fileName.split('.').pop().toLowerCase();
@@ -18,7 +17,7 @@ const DataCard = ({ data, style, isSelected = false, onCheckboxChange = null }) 
     const handleKeyDown = (e) => { if (e.key === ' ') { e.preventDefault(); if (onCheckboxChange) onCheckboxChange(data.id); } };
 
     return React.createElement('span', { style: { textDecoration: 'none', color: 'inherit' } },
-        React.createElement('div', { className: 'card', style: cardStyle, onMouseEnter: () => setIsHovered(true), onMouseLeave: () => setIsHovered(false), onKeyDown: handleKeyDown, tabIndex: 0, role: 'button' },
+        React.createElement('div', { className: 'card', style: cardStyle, onKeyDown: handleKeyDown, tabIndex: 0, role: 'button' },
             onCheckboxChange && React.createElement('input', { type: 'checkbox', checked: isSelected, onChange: handleCheckboxClick, onClick: (e) => e.stopPropagation(), style: { position: 'absolute', left: '12px', top: '12px', width: '18px', height: '18px', cursor: 'pointer', accentColor: '#1a4fd6', zIndex: 10 } }),
             React.createElement('div', { className: 'card-body', style: { display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' } },
                 React.createElement('div', { className: 'd-flex justify-content-between align-items-start mb-3', style: { marginLeft: onCheckboxChange ? '28px' : '0' } },
@@ -32,16 +31,21 @@ const DataCard = ({ data, style, isSelected = false, onCheckboxChange = null }) 
                     )
                 ),
                 React.createElement('p', { className: 'card-text', style: descriptionStyle }, data.description),
-                data.files && data.files.length > 0 && React.createElement('div', { style: { marginBottom: '12px', padding: '8px', backgroundColor: '#f3f4f6', borderRadius: '4px', fontSize: '0.85rem' } },
-                    React.createElement('strong', { style: { display: 'block', marginBottom: '6px' } }, 'Files:'),
-                    data.files.map((file, index) => React.createElement('div', { key: index, style: { display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', fontFamily: 'monospace' } },
-                        getFileTypeIcon(file.file_name),
-                        React.createElement('span', null, file.file_name),
-                        file.file_type && React.createElement('span', { style: { fontSize: '0.75rem', padding: '2px 6px', backgroundColor: '#e5e7eb', borderRadius: '3px', color: '#374151' } }, file.file_type.toUpperCase())
-                    ))
-                ),
                 React.createElement('div', { style: { flex: 1 } }),
-                React.createElement('div', { className: 'd-flex justify-content-between align-items-flex-end' },
+                data.files && data.files.length > 0 && React.createElement('div', { style: { marginBottom: '8px', padding: '6px 8px', backgroundColor: '#f0f1f3', borderRadius: '4px', fontSize: '0.8rem' } },
+                    React.createElement('strong', { style: { display: 'block', marginBottom: '4px', fontSize: '0.85rem' } }, 'Files:'),
+                    React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: '4px' } },
+                        data.files.slice(0, 6).map((file, index) => {
+                            const ext = file.file_name ? file.file_name.split('.').pop().toUpperCase() : 'FILE';
+                            return React.createElement('span', { key: index, style: { display: 'inline-flex', alignItems: 'center', gap: '3px', padding: '3px 8px', backgroundColor: '#e5e7eb', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '500', whiteSpace: 'nowrap' } },
+                                getFileTypeIcon(file.file_name),
+                                React.createElement('span', { title: file.file_name }, ext)
+                            );
+                        }),
+                        data.files.length > 6 && React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', padding: '3px 8px', backgroundColor: '#e5e7eb', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '500' } }, `+${data.files.length - 6}`)
+                    )
+                ),
+                React.createElement('div', { className: 'd-flex justify-content-between align-items-flex-end', style: { marginTop: '8px' } },
                     React.createElement('div', { className: 'flex-grow-1' },
                         React.createElement('strong', null, 'Tags:'),
                         React.createElement('div', { className: 'mt-1' },
