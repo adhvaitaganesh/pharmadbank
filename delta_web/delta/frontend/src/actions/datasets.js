@@ -7,11 +7,8 @@ import {
     ADD_DATASET,
     DELETE_DATASET,
     GET_DATASET,
-    ADD_CART_ITEM,
-    DELETE_CART_ITEM,
     DATASET_UPDATE_SUCCESS,
     GET_DATASETS_PUBLIC,
-    USER_UPDATE_SUCCESS,
 } from "./types";
 
 
@@ -27,18 +24,7 @@ export const addDataset = (dictData) => (dispatch, getState) => {
                 console.log(err)
             })
     }
-    // GET FILES
-export const getDatasets = () => (dispatch, getState) => {
-    axios.get('/api/datasets/', tokenConfig(getState))
-        .then(res => {
-            return res;
-        })
-        .catch(err => dispatch(
-            returnErrors(err.response.data, err.response.status)
-        ))
-}
-
-// GET FILE by ID
+    // GET FILE by ID
 export const getDataset = (id) => (dispatch, getState) => {
         axios.get(`/api/datasets/${id}/`, tokenConfig(getState))
             .then(res => {

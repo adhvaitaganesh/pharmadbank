@@ -73,21 +73,6 @@ class DataSet(models.Model):
     
     def get_zip_path(self):
         return f'static/users/{self.author}/files/{self.original_name}.zip'
-    
-    def get_folder_path(self):
-        return f'static/users/{self.author}/files/{self.original_name}/'
-    
-    def get_zip_file_name(self):
-        return self.name + ".zip"
-
-# just to hold if user has downloaded dataset or not
-class UserDownload(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    dataset = models.ForeignKey(DataSet, on_delete=models.CASCADE)
-    download_date = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        unique_together = ('user', 'dataset')
 
 # File model
 # folders are also files
@@ -123,10 +108,6 @@ class File(models.Model):
         
         super().save(*args,**kwargs)
     
-    def in_folder(self):
-        # check if within a folder
-        return len(os.path.splitext(self.file_path)) > 1
-
 # when delete the DataSet model, should also delete the files in the directory
 # see: https://stackoverflow.com/questions/71278989/how-to-call-a-function-when-you-delete-a-model-object-in-django-admin-page-or
 @receiver(post_delete,sender=DataSet)

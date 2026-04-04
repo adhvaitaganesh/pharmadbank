@@ -4,19 +4,16 @@
 #
 # The serializers for the data app.
 #
-from rest_framework import serializers
-from .models import (DataSet,TagDataset,File,
-                     Folder,UserDownload)
-
-from rest_framework.validators import UniqueTogetherValidator
-
 # aggregation of csv reviews
 from django.db.models import Avg
+from organizations.serializers import OrganizationSerializer
+from rest_framework import serializers
+from rest_framework.validators import UniqueTogetherValidator
 
 # serializers
 from social.serializers import SerializerReview
 
-from organizations.serializers import OrganizationSerializer
+from .models import DataSet, File, Folder, TagDataset
 
 
 class SerializerFolder(serializers.ModelSerializer):

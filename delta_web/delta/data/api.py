@@ -14,12 +14,10 @@
 import json
 import logging
 import os
-import random
 
 # zip the folder (dataset)
 import shutil
 import sqlite3
-import string
 import tempfile
 
 # threading
