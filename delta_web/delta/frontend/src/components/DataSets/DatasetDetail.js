@@ -88,7 +88,8 @@ const DatasetDetail = props => {
             }
             setUploadSuccess(message);
             showUploadToast(message, "#198754");
-            // Refresh data to show new file
+            // Clear cache and refresh data to show new file
+            delete dataCache.current[id];
             retrieveData();
         }).catch(() => {
             setUploadError("Upload failed. Please try again.");
@@ -135,6 +136,20 @@ const DatasetDetail = props => {
         props.downloadDataset(csvFile.id);
     };
 
+    const handleFileDeleted = (fileId) => {
+        // Update csvFile state to remove deleted file
+        setDataset(prev => ({
+            ...prev,
+            files: prev.files.filter(f => f.id !== fileId)
+        }));
+    };
+
+    const handleFileAdded = () => {
+        // Clear cache and refresh data when file is added
+        delete dataCache.current[id];
+        retrieveData();
+    };
+
     useEffect(() => {
         retrieveData();
     }, []);
@@ -147,7 +162,7 @@ const DatasetDetail = props => {
             "div", { className: "row" },
             React.createElement(
                 "div", { className: "col-md-8" },
-                React.createElement(Dataset, { data: csvFile, auth: props.auth })
+                React.createElement(Dataset, { data: csvFile, auth: props.auth, onFileDeleted: handleFileDeleted })
             ),
             React.createElement(
                 "div", { className: "col-md-4" },
@@ -253,7 +268,8 @@ const DatasetDetail = props => {
                     onDataLoaded: null, // Null to prevent redundant /api/datasets/{id}/ calls on file selection
                     files: csvFile && csvFile.files ? csvFile.files : [],
                     datasetId: id,
-                    authToken: props.auth.token
+                    authToken: props.auth.token,
+                    onFileDeleted: handleFileDeleted
                 })
             )
         ),

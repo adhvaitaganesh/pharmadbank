@@ -50,6 +50,10 @@ const Dataset = props => {
                     setShowTable(false);
                 }
                 showToast("File deleted successfully", "#198754");
+                // Notify parent component
+                if (props.onFileDeleted) {
+                    props.onFileDeleted(fileId);
+                }
             }).catch(() => {
                 showToast("Failed to delete file", "#dc3545");
             });
@@ -102,33 +106,59 @@ const Dataset = props => {
 
     // prettier-ignore
     return ( <
-        div className = "card m-2 p-3" >
-        <
-        div className = "d-flex justify-content-between" >
-        <
-        div >
-        <
-        p >
-        <
-        Link to = { `/profile/${props.data.author_username}` } > { props.data.author_username } < /Link> {" "} - {props.data.formatted_date} < /
-        p > <
-        /div> < /
-        div >
+            div className = "card m-2 p-3" >
+            <
+            div className = "d-flex justify-content-between" >
+            <
+            div >
+            <
+            p >
+            <
+            Link to = { `/profile/${props.data.author_username}` } > { props.data.author_username } < /Link> {" "} - {props.data.formatted_date} < /
+            p > <
+            /div> {
+            canEdit && ( <
+                div style = {
+                    {
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px"
+                    }
+                } >
+                <
+                Link to = { `/datasets/${props.data.id}/edit` }
+                className = "btn btn-primary"
+                style = {
+                    { marginBottom: 0, padding: "6px 12px", fontSize: "14px" }
+                } >
+                Edit <
+                /Link> <
+                button onClick = { clickDelete }
+                className = "btn btn-danger"
+                style = {
+                    { marginBottom: 0, padding: "6px 12px", fontSize: "14px" }
+                } >
+                Delete <
+                /button> < /
+                div >
+            )
+        } <
+        /div>
 
-        <
-        div >
+    <
+    div >
         <
         h4 > Dataset Name: { props.data.name } < /h4> <
-        small > Download count: { props.data.download_count } < /small> <
-        hr / >
+    small > Download count: { props.data.download_count } < /small> <
+    hr / >
         <
         div > { props.data.description } < /div>
 
-        <
-        div className = "mt-3" >
+    <
+    div className = "mt-3" >
         <
         h6 > Tags < /h6> <
-        div className = "mb-2" > {
+    div className = "mb-2" > {
             props.data.tags.map((objTag, index) => ( <
                 div className = { tag_styles.tag_item }
                 key = { index } >
@@ -138,7 +168,7 @@ const Dataset = props => {
             ))
         } <
         /div> < /
-        div >
+    div >
 
         {
             getImageFiles().length > 0 && ( <
@@ -249,41 +279,9 @@ const Dataset = props => {
                             /div>
                     );
                 })
-        } {
-            canEdit && ( <
-                div style = {
-                    {
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "8px",
-                        padding: "8px 10px",
-                        background: "#f8f9fa",
-                        border: "1px solid #e9ecef",
-                        borderRadius: "4px",
-                        marginTop: "8px",
-                        justifyContent: "flex-end"
-                    }
-                } >
-                <
-                Link to = { `/datasets/${props.data.id}/edit` }
-                className = "btn btn-primary me-2"
-                style = {
-                    { marginBottom: 0 }
-                } >
-                Edit <
-                /Link> <
-                button onClick = { clickDelete }
-                className = "btn btn-danger"
-                style = {
-                    { marginBottom: 0 }
-                } >
-                Delete <
-                /button> < /
-                div >
-            )
         } <
         /div>
-    )
+)
 }
 
 {

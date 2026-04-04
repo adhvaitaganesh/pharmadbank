@@ -77,7 +77,8 @@ const DataPreview = ({
         onDataLoaded = null,
         files = [],
         datasetId = null,
-        authToken = null
+        authToken = null,
+        onFileDeleted = null
     }) => {
         // State for data management
         const [data, setData] = useState(initialData ? initialData.rows || [] : []);
@@ -95,9 +96,15 @@ const DataPreview = ({
         const [showPopup, setShowPopup] = useState(false);
         const [popupFileName, setPopupFileName] = useState("");
         const [popupRowCount, setPopupRowCount] = useState(0);
+        const [filesList, setFilesList] = useState(files);
 
         const abortControllerRef = useRef(null);
         const rowsPerPage = 10;
+
+        // Update local files list when props change
+        useEffect(() => {
+            setFilesList(files);
+        }, [files]);
 
         // Helper function to get file extension
         const getFileExt = (filename) => filename.split(".").pop().toUpperCase();
@@ -109,7 +116,7 @@ const DataPreview = ({
         };
 
         // Get tabular files
-        const tabularFiles = files && Array.isArray(files) ? files.filter(f => isTabularFile(f.file_name)) : [];
+        const tabularFiles = filesList && Array.isArray(filesList) ? filesList.filter(f => isTabularFile(f.file_name)) : [];
 
         // Load file from backend (memoized to prevent multiple calls)
         const loadFileFromBackend = useCallback(async(file) => {
@@ -305,6 +312,9 @@ const DataPreview = ({
                     headers
                 }).then(response => {
                     if (response.status === 204 || response.ok) {
+                        // Remove file from local list immediately
+                        setFilesList(filesList.filter(f => f.id !== file.id));
+
                         // Clear data if this file was selected
                         if (selectedFile && selectedFile.id === file.id) {
                             setData([]);
@@ -313,6 +323,11 @@ const DataPreview = ({
                             setLoadedFileName("");
                         }
                         setError("");
+
+                        // Notify parent component
+                        if (onFileDeleted) {
+                            onFileDeleted(file.id);
+                        }
 
                         // Trigger a refresh by removing the file from the list
                         // The parent component should re-fetch the file list
