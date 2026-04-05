@@ -1,0 +1,15 @@
+--- datasets.js
++++ datasets.js
+@@ -123,7 +101,10 @@
+         })
+         .catch(err => {
+             console.error('Download error:', err);
+-            alert('Error downloading file. Check console for details.');
++            if (err.response && err.response.status === 403) {
++                dispatch(createMessage({downloadDatasetError: "Dataset is private. Please contact the owner for access."}));
++            } else {
++                dispatch(createMessage({downloadDatasetError: "Unable to download dataset. Please try again later."}));
++            }
+         })
+->>>>>>> origin/feature/dataset-viewer
+ }

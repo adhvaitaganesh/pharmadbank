@@ -12,7 +12,7 @@ import {
 } from "./types";
 
 
-// POST FILE 
+// POST FILE
 export const addDataset = (dictData) => (dispatch, getState) => {
         return axios.post('/api/datasets/', dictData, fileTokenConfig(getState))
             .then((res) => {
@@ -89,11 +89,33 @@ export const getDatasetsPublic = () => (dispatch, getState) => {
 
 // DOWNLOAD A FILE
 //  id is of file object
-// to do: 
+// to do:
 // these should all be zips
 export const downloadDataset = (id) => (dispatch, getState) => {
     var config = tokenConfig(getState)
     config['responseType'] = "arraybuffer"
+<<<<<<< HEAD
+    axios.get(`/api/public_datasets/${id}/download`,config)
+    .then(res=>{
+        var fileContent = res.data;
+        // temporary solution to get file name, naive
+        var fileName = res.headers['content-disposition'].split('filename=')[1].split(';')[0];
+        var blob = new Blob([fileContent],{type:"application/zip"});
+        // Create a link element and trigger the download
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob)
+        link.download = fileName;
+        link.click();
+    })
+    .catch(err=>{
+        console.log(err)
+        if (err.response && err.response.status === 403) {
+            dispatch(createMessage({downloadDatasetError: "Dataset is private. Please contact the owner for access."}));
+        } else {
+            dispatch(createMessage({downloadDatasetError: "Unable to download dataset. Please try again later."}));
+        }
+    })
+=======
     axios.get(`/api/public_datasets/${id}/download`, config)
         .then(res => {
             var fileContent = res.data;
@@ -123,10 +145,7 @@ export const downloadDataset = (id) => (dispatch, getState) => {
         })
         .catch(err => {
             console.error('Download error:', err);
-            if (err.response && err.response.status === 403) {
-                dispatch(createMessage({downloadDatasetError: "Dataset is private. Please contact the owner for access."}));
-            } else {
-                dispatch(createMessage({downloadDatasetError: "Unable to download dataset. Please try again later."}));
-            }
+            alert('Error downloading file. Check console for details.');
         })
+>>>>>>> origin/feature/dataset-viewer
 }

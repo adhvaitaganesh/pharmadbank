@@ -1,0 +1,13 @@
+--- delta_web/delta/frontend/src/components/home/Dashboard.js
++++ delta_web/delta/frontend/src/components/home/Dashboard.js
+@@ -107,6 +107,8 @@
+         ) : (
+           <div>
++            <p> Looks like you 're all caught up. Well done!</p>
++          </div>
++        )}{" "}
++      </div>
++      <div>
+         <h5>Whats Hot</h5>
+-        <h5> Whats Hot </h5>
+         {arrNotificationWhatsHot.length != 0 ? (

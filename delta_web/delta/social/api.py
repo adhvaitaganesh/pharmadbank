@@ -10,14 +10,10 @@
 # Delta project.
 #
 from data.models import DataSet
-<<<<<<< HEAD
 from data.permissions import user_can_access_dataset
 
 from rest_framework.decorators import action
 from rest_framework.response import Response
-
-=======
->>>>>>> origin/feature/dataset-viewer
 from django.contrib.auth import get_user_model
 
 # https://stackoverflow.com/questions/739776/how-do-i-do-an-or-filter-in-a-django-query
