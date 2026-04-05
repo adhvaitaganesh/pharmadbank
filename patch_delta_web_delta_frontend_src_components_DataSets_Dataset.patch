@@ -1,0 +1,36 @@
+--- delta_web/delta/frontend/src/components/DataSets/Dataset.js
++++ delta_web/delta/frontend/src/components/DataSets/Dataset.js
+@@ -350,7 +350,6 @@
+             background: toast.color
+         }
+     }
+-<<<<<<< HEAD
+   };
+
+   const clickDownload = () => {
+@@ -447,27 +446,14 @@
+       </div>
+     </div>
+   );
+-=======
+-/> <
+-span > { toast.message } < /span> < /
+-div > <
+-    /div>
+-);
+->>>>>>> origin/feature/dataset-viewer
+ };
+
+ const mapStateToProps = state => ({ auth: state.auth });
+
+-<<<<<<< HEAD
+ export default connect(mapStateToProps, {
+   deleteDataset,
+   downloadDataset,
+   createMessage,
+   addConversation,
+   getUserConversations,
+ })(Dataset);
+-=======
+-export default connect(mapStateToProps, { deleteDataset, downloadDataset })(Dataset);
+->>>>>>> origin/feature/dataset-viewer

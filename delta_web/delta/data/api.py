@@ -12,18 +12,15 @@
 
 # json
 import json
-<<<<<<< HEAD
+import logging
+import os
 
 # import necessary models
 from django.http import FileResponse,HttpResponse
-from .models import (DataSet, TagDataset,File,Folder,UserDownload)
+from .models import (DataSet, TagDataset,File,Folder)
 from .permissions import user_can_access_dataset, CanAccessDataSet
 from rest_framework import status,renderers
 from rest_framework.decorators import action
-=======
-import logging
-import os
->>>>>>> origin/feature/dataset-viewer
 
 # zip the folder (dataset)
 import shutil
@@ -45,18 +42,13 @@ logger = logging.getLogger(__name__)
 # files
 from django.conf import settings as django_settings
 
-<<<<<<< HEAD
 from django.db.models import Q
+
 # import necessary rest_framework stuff
 from rest_framework import viewsets, permissions
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.parsers import FileUploadParser, MultiPartParser
-from django.db.models import Q
-=======
-# import necessary models
-from django.http import FileResponse, HttpResponse
->>>>>>> origin/feature/dataset-viewer
 
 # import orgs
 from organizations.models import Organization
@@ -139,7 +131,6 @@ class ViewsetPublicDataSet(viewsets.ReadOnlyModelViewSet):
             Q(is_public_orgs=True, registered_organizations__in=user_orgs)
         ).distinct()
 
-<<<<<<< HEAD
     @action(methods=['get'],detail=True,renderer_classes=(PassthroughRenderer,))
     def download(self, request, *args, **kwargs):
         # Downloading always requires authentication
@@ -147,20 +138,13 @@ class ViewsetPublicDataSet(viewsets.ReadOnlyModelViewSet):
             return HttpResponse(status=401)
 
         instance = self.get_object()
+        logger.info(f"Download requested for dataset: {instance.id} - {instance.name}")
 
         if not user_can_access_dataset(request.user, instance):
             return HttpResponse(status=403)
 
         zip_file_path = instance.get_zip_path()
-=======
-    @action(methods=['get'],detail=True)
-    def download(self,*args,**kwargs):
-        instance = self.get_object()
-        logger.info(f"Download requested for dataset: {instance.id} - {instance.name}")
->>>>>>> origin/feature/dataset-viewer
 
-        # Record the download (ignore if already exists)
-        UserDownload.objects.get_or_create(user=request.user, dataset=instance)
 
         # increase the download count
         instance.download_count += 1
@@ -636,8 +620,6 @@ class ViewsetTagDataset(viewsets.ModelViewSet):
             newTags.append(tag)
 
         return Response(self.get_serializer(newTags,many=True).data)
-<<<<<<< HEAD
-=======
 
 
 # Parse file view
@@ -1342,6 +1324,4 @@ class DatasetTableView(APIView):
         except Exception as e:
             logger.exception(f"Unexpected error in DatasetTableView.put(): {str(e)}")
             return Response({
-                'error': f'Server error: {str(e)}',
             }, status=500)
->>>>>>> origin/feature/dataset-viewer

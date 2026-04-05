@@ -338,24 +338,8 @@ div style = {
             zIndex: 9999,
             whiteSpace: "nowrap",
             boxShadow: "0 4px 16px rgba(0,0,0,.2)"
-        }
-    } >
-    <
-    span style = {
-        {
-            width: "7px",
-            height: "7px",
-            borderRadius: "50%",
-            flexShrink: 0,
-            background: toast.color
-        }
-    }
-<<<<<<< HEAD
-  };
-
-  const clickDownload = () => {
-    props.downloadDataset(props.data.id);
-  };
+        }}><span style={{ width: "7px", height: "7px", borderRadius: "50%", flexShrink: 0, background: toast.color }}></span> <span> {toast.message} </span> </div> </div>
+  );
 
   const clickContactOwner = async () => {
     const ownerUsername = props.data.author_username;
@@ -447,18 +431,10 @@ div style = {
       </div>
     </div>
   );
-=======
-/> <
-span > { toast.message } < /span> < /
-div > <
-    /div>
-);
->>>>>>> origin/feature/dataset-viewer
 };
 
 const mapStateToProps = state => ({ auth: state.auth });
 
-<<<<<<< HEAD
 export default connect(mapStateToProps, {
   deleteDataset,
   downloadDataset,
@@ -466,6 +442,3 @@ export default connect(mapStateToProps, {
   addConversation,
   getUserConversations,
 })(Dataset);
-=======
-export default connect(mapStateToProps, { deleteDataset, downloadDataset })(Dataset);
->>>>>>> origin/feature/dataset-viewer

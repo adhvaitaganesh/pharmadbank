@@ -1,0 +1,83 @@
+--- delta_web/delta/data/api.py
++++ delta_web/delta/data/api.py
+@@ -12,18 +12,12 @@
+
+ # json
+ import json
+-<<<<<<< HEAD
+-
++import logging
++import os
+ # import necessary models
+ from django.http import FileResponse,HttpResponse
+ from .models import (DataSet, TagDataset,File,Folder,UserDownload)
+ from .permissions import user_can_access_dataset, CanAccessDataSet
+ from rest_framework import status,renderers
+ from rest_framework.decorators import action
+-=======
+-import logging
+-import os
+->>>>>>> origin/feature/dataset-viewer
+
+ # zip the folder (dataset)
+ import shutil
+@@ -45,18 +39,12 @@
+ # files
+ from django.conf import settings as django_settings
+
+-<<<<<<< HEAD
+ from django.db.models import Q
+ # import necessary rest_framework stuff
+ from rest_framework import viewsets, permissions
+ from rest_framework.views import APIView
+ from rest_framework.response import Response
+ from rest_framework.parsers import FileUploadParser, MultiPartParser
+-from django.db.models import Q
+-=======
+-# import necessary models
+-from django.http import FileResponse, HttpResponse
+->>>>>>> origin/feature/dataset-viewer
+
+ # import orgs
+ from organizations.models import Organization
+@@ -139,25 +127,18 @@
+             Q(is_public_orgs=True, registered_organizations__in=user_orgs)
+         ).distinct()
+
+-<<<<<<< HEAD
+     @action(methods=['get'],detail=True,renderer_classes=(PassthroughRenderer,))
+     def download(self, request, *args, **kwargs):
+         # Downloading always requires authentication
+         if not request.user or not request.user.is_authenticated:
+             return HttpResponse(status=401)
+
+         instance = self.get_object()
++        logger.info(f"Download requested for dataset: {instance.id} - {instance.name}")
+
+         if not user_can_access_dataset(request.user, instance):
+             return HttpResponse(status=403)
+
+         zip_file_path = instance.get_zip_path()
+-=======
+-    @action(methods=['get'],detail=True)
+-    def download(self,*args,**kwargs):
+-        instance = self.get_object()
+-        logger.info(f"Download requested for dataset: {instance.id} - {instance.name}")
+->>>>>>> origin/feature/dataset-viewer
+
+         # Record the download (ignore if already exists)
+         UserDownload.objects.get_or_create(user=request.user, dataset=instance)
+@@ -636,8 +617,6 @@
+             newTags.append(tag)
+
+         return Response(self.get_serializer(newTags,many=True).data)
+-<<<<<<< HEAD
+-=======
+
+
+ # Parse file view
+@@ -1344,4 +1323,3 @@
+             return Response({
+                 'error': f'Server error: {str(e)}',
+             }, status=500)
+->>>>>>> origin/feature/dataset-viewer

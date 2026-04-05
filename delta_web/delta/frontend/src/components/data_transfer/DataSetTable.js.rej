@@ -1,0 +1,13 @@
+--- DataSetTable.js
++++ DataSetTable.js
+@@ -156,13 +108,12 @@
+         ),
+         React.createElement('div', { className: 'row mt-4' }, renderItems()),
+         isPopupVisible && React.createElement(FolderCreatePopup, { close: () => setIsPopupVisible(false), dataSets: selectedDataSets })
+     );
+->>>>>>> origin/feature/dataset-viewer
+ };
+
+ const mapStateToProps = (state) => { return { auth: state.auth }; };
+ const mapDispatchToProps = { createFolder };
+ export default connect(mapStateToProps, mapDispatchToProps)(DataSetTable);

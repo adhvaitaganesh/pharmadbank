@@ -90,6 +90,55 @@ const DataSetTable = (props) => {
 
 
 
+<<<<<<< HEAD
+        )}
+      </div>
+      <div className="mb-2">
+        <label htmlFor="inputSearchAuthor" className="form-label">
+          Author
+        </label>
+        <input
+          type="text"
+          className="form-control"
+          id="inputSearchAuthor"
+          placeholder="Enter an author associated with the dataset."
+          onChange={onSearchChange}
+        />
+        <div className="form-text">
+          For example, enter "user123" to see public files uploaded by "user123".
+        </div>
+      </div>
+      <div className="d-flex flex-row align-items-center mb-3">
+        <div className="d-flex align-items-center">
+          <button
+            className="btn btn-primary d-flex align-items-center me-2"
+            onClick={handleAddToFolder}
+          >
+            <FaFolderPlus className="me-1" />
+            Add to Folder
+          </button>
+        </div>
+        <button className="btn btn-success d-flex align-items-center" onClick={massAddToCart}>
+          <FaCartPlus className="me-1" />
+          Add to Downloads
+        </button>
+      </div>
+      <span>
+        <strong>{selectedDataSets.length}</strong> file(s) selected.
+      </span>
+      <p>Double click to view a dataset.</p>
+      <div className="row">
+          {renderItems()}
+      </div>
+      <FolderCreatePopup
+      isVisible={isPopupVisible}
+      onClose={() => setIsPopupVisible(false)}
+      selectedDataSets={selectedDataSets}
+      createFolder={props.createFolder}
+    />
+  </div>
+);
+=======
     const handleDownloadSelected = async() => {
         if (selectedDataSets.length === 0) { alert('Please select at least one dataset to download.'); return; }
         setIsDownloading(true);
@@ -149,7 +198,6 @@ const DataSetTable = (props) => {
         React.createElement('div', { className: 'd-flex flex-row align-items-center mb-3 gap-2 justify-content-between' },
             React.createElement('div', { className: 'd-flex gap-2' },
                 React.createElement('button', { className: 'btn btn-primary d-flex align-items-center', onClick: handleAddToFolder }, React.createElement(FaFolderPlus, { className: 'me-1' }), ' Add to Folder'),
-                React.createElement('button', { className: 'btn btn-success d-flex align-items-center', onClick: massAddToCart }, React.createElement(FaCartPlus, { className: 'me-1' }), ' Add to Downloads'),
                 React.createElement('button', { className: 'btn btn-success d-flex align-items-center', onClick: handleDownloadSelected, disabled: selectedDataSets.length === 0 || isDownloading, style: { opacity: selectedDataSets.length === 0 || isDownloading ? 0.5 : 1 } }, isDownloading ? React.createElement(FaSpinner, { className: 'me-1 spinner-animation' }) : React.createElement(FaDownload, { className: 'me-1' }), ' Download Selected')
             ),
             React.createElement('div', { className: 'd-flex gap-2 align-items-center' },
@@ -158,9 +206,12 @@ const DataSetTable = (props) => {
                 React.createElement('button', { className: 'btn btn-sm btn-outline-secondary', onClick: handleClearAll }, 'Clear')
             )
         ),
-        isPopupVisible && React.createElement(FolderCreatePopup, { isVisible: isPopupVisible, onClose: () => setIsPopupVisible(false), selectedDataSets: selectedDataSets, createFolder: props.createFolder })
+        React.createElement('div', { className: 'row mt-4' }, renderItems()),
+        isPopupVisible && React.createElement(FolderCreatePopup, { close: () => setIsPopupVisible(false), dataSets: selectedDataSets })
     );
+>>>>>>> origin/feature/dataset-viewer
 };
+
 const mapStateToProps = (state) => { return { auth: state.auth }; };
 const mapDispatchToProps = { createFolder };
 export default connect(mapStateToProps, mapDispatchToProps)(DataSetTable);
