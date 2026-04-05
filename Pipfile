@@ -13,6 +13,7 @@ django-rest-knox = "*"
 gunicorn = "*"
 whitenoise = "*"
 email-validator = "*"
+pandas = "*"
 
 [dev-packages]
 
