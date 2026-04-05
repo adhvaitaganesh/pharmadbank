@@ -220,6 +220,11 @@ static/users/*
 *.csv
 *.zip
 
+# Claude Code
+CLAUDE.md
+ai/
+delta_web/delta/static/users/
+
 # Paper
 # conference_paper/*
 

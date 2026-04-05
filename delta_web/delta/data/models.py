@@ -6,26 +6,25 @@
 #
 # Stores all the information related to the models of `data` app.
 #
+# for file manip
+import os
+
+# cart
+from accounts.models import Cart
 from django.conf import settings
+
+# TODO: Change to our custom user model.
+from django.contrib.auth import get_user_model
 from django.db import models
-from django.utils import timezone
 
 # signal when the model is deleted
 # see: https://stackoverflow.com/questions/71278989/how-to-call-a-function-when-you-delete-a-model-object-in-django-admin-page-or
 from django.db.models.signals import post_delete
 from django.dispatch import receiver
-
-# TODO: Change to our custom user model.
-from django.contrib.auth import get_user_model
-
-# for file manip
-import os
+from django.utils import timezone
 
 # for add to org
 from organizations.models import Organization
-
-# cart
-from accounts.models import Cart
 
 User = get_user_model()
 
@@ -67,27 +66,13 @@ class DataSet(models.Model):
 
     name = models.CharField(max_length=128)
     original_name = models.CharField(max_length=128)
+    table_name = models.CharField(max_length=255, blank=True, null=True)
 
     def __str__(self):
         return self.name
     
     def get_zip_path(self):
         return f'static/users/{self.author}/files/{self.original_name}.zip'
-    
-    def get_folder_path(self):
-        return f'static/users/{self.author}/files/{self.original_name}/'
-    
-    def get_zip_file_name(self):
-        return self.name + ".zip"
-
-# just to hold if user has downloaded dataset or not
-class UserDownload(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    dataset = models.ForeignKey(DataSet, on_delete=models.CASCADE)
-    download_date = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        unique_together = ('user', 'dataset')
 
 # File model
 # folders are also files
@@ -101,6 +86,12 @@ class File(models.Model):
     # file name not necessarily same as path
     file_name = models.TextField(db_column="file_name",blank=False,null=False,unique=False)
 
+    # file type (extension) - e.g. "csv", "xlsx", "json", "pdf"
+    file_type = models.CharField(max_length=20, blank=True, null=True)
+
+    # table_name for storing SQLite table name for this file
+    table_name = models.CharField(max_length=255, blank=True, null=True)
+
     def __str__(self):
         return self.file_name
     
@@ -109,12 +100,14 @@ class File(models.Model):
         # 
         if not self.file_name:
             self.file_name = str(os.path.basename(self.file_path))
+        
+        # auto-populate file_type from extension
+        if not self.file_type and self.file_name:
+            ext = self.file_name.rsplit('.', 1)[-1].lower() if '.' in self.file_name else ''
+            self.file_type = ext
+        
         super().save(*args,**kwargs)
     
-    def in_folder(self):
-        # check if within a folder
-        return len(os.path.splitext(self.file_path)) > 1
-
 # when delete the DataSet model, should also delete the files in the directory
 # see: https://stackoverflow.com/questions/71278989/how-to-call-a-function-when-you-delete-a-model-object-in-django-admin-page-or
 @receiver(post_delete,sender=DataSet)
@@ -138,3 +131,11 @@ class TagDataset(BaseTag):
 
     def __str__(self):
         return "Tag {}".format(self.text)
+
+class DatasetRow(models.Model):
+    dataset = models.ForeignKey(DataSet, on_delete=models.CASCADE, related_name='rows')
+    row_data = models.JSONField()
+    row_index = models.IntegerField()
+
+    class Meta:
+        ordering = ['row_index']

@@ -9,31 +9,42 @@
 # Brief description: Constains the rules for how to interact with the server side of the 
 # Delta project.
 #
-from rest_framework import viewsets, permissions
-from rest_framework.response import Response
-
-from .serializers import (SerializerReview,SerializerNotificationReview,
-SerializerConversation,SerializerMessage,SerializerNotificationMessage,
-SerializerNotificationWhatsHot,SerializerNotificationNews
-)
 from data.models import DataSet
+<<<<<<< HEAD
 from data.permissions import user_can_access_dataset
 
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+=======
+>>>>>>> origin/feature/dataset-viewer
 from django.contrib.auth import get_user_model
-
-from .models import (Conversation,Message,Review,
-NotificationMessage,NotificationReview,ReviewComment)
-from rest_framework.parsers import FileUploadParser, MultiPartParser
 
 # https://stackoverflow.com/questions/739776/how-do-i-do-an-or-filter-in-a-django-query
 from django.db.models import Q
-
-from rest_framework import status
-from rest_framework.response import Response
+from rest_framework import permissions, status, viewsets
+from rest_framework.decorators import action
 from rest_framework.exceptions import APIException
+from rest_framework.parsers import MultiPartParser
+from rest_framework.response import Response
+
+from .models import (
+    Conversation,
+    Message,
+    NotificationMessage,
+    NotificationReview,
+    Review,
+    ReviewComment,
+)
+from .serializers import (
+    SerializerConversation,
+    SerializerMessage,
+    SerializerNotificationMessage,
+    SerializerNotificationNews,
+    SerializerNotificationReview,
+    SerializerNotificationWhatsHot,
+    SerializerReview,
+)
 
 User = get_user_model()
 
@@ -82,16 +93,13 @@ class ViewsetReview(viewsets.ModelViewSet):
         super().partial_update(request,*args,**kwargs)
         return Response(self.serializer_class(Review.objects.get(pk=kwargs['pk'])).data)
 
-from rest_framework import viewsets, permissions
+from rest_framework import permissions, viewsets
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
-from .models import ReviewComment
+
+from .models import Review, ReviewComment
 from .serializers import SerializerReviewComment
 
-from rest_framework import viewsets, permissions
-from rest_framework.response import Response
-from rest_framework.exceptions import PermissionDenied
-from .models import ReviewComment, Review
-from .serializers import SerializerReviewComment
 
 class ViewsetReviewComment(viewsets.ModelViewSet):
     # Users need to be authenticated to use this resource

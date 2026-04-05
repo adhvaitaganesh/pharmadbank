@@ -85,12 +85,20 @@ const Dashboard = (props) => {
   return (
     <div className="container">
       <h1>
+<<<<<<< HEAD
         Welcome back <strong>{props.auth.user.first_name}</strong>.
       </h1>
       <h3>Here's what you've missed.</h3>
 
       <div>
         <h5>Recent News</h5>
+=======
+        Welcome back <strong> {props.auth.user.username} </strong>.{" "}
+      </h1>{" "}
+      <h3> Here 's what you' ve missed. </h3>
+      <div>
+        <h5> Recent News in Delta </h5>{" "}
+>>>>>>> origin/feature/dataset-viewer
         {arrNotificationNews.length != 0 ? (
           <div
             className="box shadow-sm rounded bg-light mb-3 border border-gray"
@@ -106,20 +114,23 @@ const Dashboard = (props) => {
                   <NotificationNews
                     parentRemoveNotif={removeNotificationNews}
                     notif={data}
-                  />
+                  />{" "}
                 </SwiperSlide>
-              ))}
-            </Swiper>
+              ))}{" "}
+            </Swiper>{" "}
           </div>
         ) : (
           <div>
-            <p>Looks like you're all caught up. Well done!</p>
+            <p> Looks like you 're all caught up. Well done!</p>{" "}
           </div>
-        )}
+        )}{" "}
       </div>
-
       <div>
+<<<<<<< HEAD
         <h5></h5>
+=======
+        <h5> Whats Hot in Delta </h5>{" "}
+>>>>>>> origin/feature/dataset-viewer
         {arrNotificationWhatsHot.length != 0 ? (
           <div
             className="box shadow-sm rounded bg-light mb-3 border border-gray"
@@ -135,17 +146,21 @@ const Dashboard = (props) => {
                   <NotificationWhatsHot
                     parentRemoveNotif={removeNotificationWhatsHot}
                     notif={data}
-                  />
+                  />{" "}
                 </SwiperSlide>
-              ))}
-            </Swiper>
+              ))}{" "}
+            </Swiper>{" "}
           </div>
         ) : (
           <div>
+<<<<<<< HEAD
             <p></p>
+=======
+            <p> Looks like you 're all caught up. Well done!</p>{" "}
+>>>>>>> origin/feature/dataset-viewer
           </div>
-        )}
-      </div>
+        )}{" "}
+      </div>{" "}
     </div>
   );
 };
