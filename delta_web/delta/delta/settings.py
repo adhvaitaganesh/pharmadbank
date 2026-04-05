@@ -54,7 +54,7 @@ if not SECRET_KEY:
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env_bool('DEBUG', False)
 
-ALLOWED_HOSTS = ['guarded-journey-12008.herokuapp.com', '127.0.0.1', 'localhost']
+ALLOWED_HOSTS = ['*', 'guarded-journey-12008.herokuapp.com', '127.0.0.1', 'localhost']
 _extra_host = os.environ.get('ALLOWED_HOST', '')
 if _extra_host:
     ALLOWED_HOSTS.append(_extra_host)
