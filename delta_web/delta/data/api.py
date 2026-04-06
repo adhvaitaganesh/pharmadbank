@@ -395,11 +395,12 @@ class ViewsetDataSet(viewsets.ModelViewSet):
             for chunk in upload_file.chunks():
                 dest.write(chunk)
 
-        # Create File model entry
-        file_obj = File(dataset=dataset, file_path=file_path, file_name=upload_file.name)
-        file_obj.save()
-
-        # Optionally: parse and add rows to DatasetRow, etc.
+        # Create or update File model entry (avoid UNIQUE constraint on file_path)
+        file_obj, created = File.objects.update_or_create(
+            dataset=dataset,
+            file_path=file_path,
+            defaults={'file_name': upload_file.name}
+        )
 
         return Response({'message': 'File uploaded successfully.'}, status=status.HTTP_201_CREATED)
 
@@ -506,15 +507,17 @@ class ViewsetDataSet(viewsets.ModelViewSet):
                 dataSet.registered_organizations.add(organization)
         
         # then create the files
+        file_name = None
+        file_data = None
         for index in range(0,num_files):
                 file_key = f"file.{index}"
                 relative_path_key = file_key + '.relativePath'
                 full_path= os.path.join(strDataSetPath,request.data[relative_path_key])
                 file = request.data[file_key]
                 file_name = str(file)
-                
-                file_obj = File(dataset=dataSet, 
-                                file_path=full_path, 
+
+                file_obj = File(dataset=dataSet,
+                                file_path=full_path,
                                 file_name=file_name)
                 file_obj.save()
 
@@ -530,6 +533,8 @@ class ViewsetDataSet(viewsets.ModelViewSet):
 
         # Step 4: Parse and save to SQLite BEFORE zipping (while files are still in memory)
         try:
+            if file_name is None or file_data is None:
+                raise ValueError("No file was uploaded")
             file_bytes = BytesIO(file_data)
             fname = file_name.lower()
     
@@ -1112,11 +1117,29 @@ class DatasetTableView(APIView):
                     if file_ext in parsable_exts:
                         logger.info(f"Auto-parsing file {file_id}: {file_obj.file_name} ({file_ext})")
                         try:
-                            # Parse the file
-                            if file_ext == 'csv':
-                                df = pd.read_csv(file_obj.file_path)
-                            else:  # xlsx or xls
-                                df = pd.read_excel(file_obj.file_path)
+                            # Parse the file — original files may have been zipped and deleted,
+                            # so fall back to reading from ZIP if the path no longer exists.
+                            if os.path.exists(file_obj.file_path):
+                                src = file_obj.file_path
+                                if file_ext == 'csv':
+                                    df = pd.read_csv(src)
+                                else:
+                                    df = pd.read_excel(src)
+                            else:
+                                zip_path = dataset.get_zip_path()
+                                if not os.path.exists(zip_path):
+                                    raise FileNotFoundError(f"Neither file nor ZIP found for file {file_id}")
+                                target_name = file_obj.file_name
+                                with zipfile.ZipFile(zip_path, 'r') as zf:
+                                    matching = [n for n in zf.namelist() if os.path.basename(n) == target_name]
+                                    if not matching:
+                                        raise FileNotFoundError(f"{target_name} not found in ZIP")
+                                    with zf.open(matching[0]) as zfile:
+                                        file_bytes = BytesIO(zfile.read())
+                                if file_ext == 'csv':
+                                    df = pd.read_csv(file_bytes)
+                                else:
+                                    df = pd.read_excel(file_bytes)
                             
                             # Handle NaN values
                             df = df.fillna('')

@@ -149,7 +149,6 @@ const DataSetTable = (props) => {
         React.createElement('div', { className: 'd-flex flex-row align-items-center mb-3 gap-2 justify-content-between' },
             React.createElement('div', { className: 'd-flex gap-2' },
                 React.createElement('button', { className: 'btn btn-primary d-flex align-items-center', onClick: handleAddToFolder }, React.createElement(FaFolderPlus, { className: 'me-1' }), ' Add to Folder'),
-                React.createElement('button', { className: 'btn btn-success d-flex align-items-center', onClick: massAddToCart }, React.createElement(FaCartPlus, { className: 'me-1' }), ' Add to Downloads'),
                 React.createElement('button', { className: 'btn btn-success d-flex align-items-center', onClick: handleDownloadSelected, disabled: selectedDataSets.length === 0 || isDownloading, style: { opacity: selectedDataSets.length === 0 || isDownloading ? 0.5 : 1 } }, isDownloading ? React.createElement(FaSpinner, { className: 'me-1 spinner-animation' }) : React.createElement(FaDownload, { className: 'me-1' }), ' Download Selected')
             ),
             React.createElement('div', { className: 'd-flex gap-2 align-items-center' },
@@ -158,6 +157,7 @@ const DataSetTable = (props) => {
                 React.createElement('button', { className: 'btn btn-sm btn-outline-secondary', onClick: handleClearAll }, 'Clear')
             )
         ),
+        React.createElement('div', { className: 'row mt-4' }, renderItems()),
         isPopupVisible && React.createElement(FolderCreatePopup, { isVisible: isPopupVisible, onClose: () => setIsPopupVisible(false), selectedDataSets: selectedDataSets, createFolder: props.createFolder })
     );
 };

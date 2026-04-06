@@ -4,7 +4,6 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-env = "*"
 django = "*"
 djangorestframework = "*"
 markdown = "*"
@@ -14,6 +13,7 @@ gunicorn = "*"
 whitenoise = "*"
 email-validator = "*"
 pandas = "*"
+openpyxl = "*"
 
 [dev-packages]
 
