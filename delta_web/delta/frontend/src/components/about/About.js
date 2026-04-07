@@ -1,12 +1,14 @@
 import React from "react";
 import { connect } from "react-redux";
 
+//import localLogo from "../../../public/Pharmadbank.png";
+
 const About = (props) => {
   return (
     <>
       {/* insert logo here */}
       <img
-        src="./public/Pharmadbank.png"
+	  src="https://adhvaitaganesh.github.io/Logos/Pharmadbank.png"
         alt="PharmaDBank Logo"
         style={{ width: "400px" }}
         className="mx-auto d-block mt-4"
