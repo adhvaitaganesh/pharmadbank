@@ -6,7 +6,7 @@ const About = (props) => {
     <>
       {/* insert logo here */}
       <img
-        src="https://www.uni-saarland.de/fileadmin/upload/verwaltung/cd/Website_CD-Bilder-Bereich-Bildmarke-v2.png"
+        src="./public/Pharmadbank.png"
         alt="PharmaDBank Logo"
         style={{ width: "400px" }}
         className="mx-auto d-block mt-4"
