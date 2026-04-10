@@ -1,17 +1,25 @@
-## 5.1 Agile Methodology: Sprint Structure and MVP Definition
+## 5. V1 — Baseline Platform Branch: main, commit: e36879a
 
-The development of the MVP was governed by an Agile Scrum methodology. This approach ensures an iterative, flexible, and responsive implementation process, allowing the team to adapt to new requirements and user feedback continuously.
+### 5.1 DataDock as the Starting Point
+The development of V1 did not begin from scratch; rather, it was built upon an existing codebase from a published research project, DataDock (cited in our literature review under arXiv:2406.16880). DataDock was selected as the foundational baseline for several strategic reasons: its comprehensive initial feature coverage aligned closely with our project goals, its technology stack matched our development expertise, and its open-source license permitted flexible adaptation.
 
-### Sprint Structure
-The project was structured into **three-week sprints**. This duration was chosen to balance the need for rapid iteration with the time required to develop complex backend data processing features and frontend UI components.
+Before building upon this foundation, we conducted a thorough analysis of the application's architecture to understand how its various components were connected. The platform operates on a decoupled architecture, with a React frontend communicating asynchronously with a Django backend via a REST API. Understanding this data flow was critical to identifying what needed to be adapted and establishing the exact steps required to ensure the application compiled, built, and ran seamlessly in our specific deployment environment.
 
-* **Sprint Planning:** At the start of each sprint, the product owner and development team define the sprint goal and select user stories from the product backlog.
-* **Daily Stand-ups:** Brief daily meetings to synchronize activities, discuss progress, and identify any blockers.
-* **Sprint Review:** At the end of the sprint, the team demonstrates the completed features to stakeholders.
-* **Sprint Retrospective:** The team reflects on the sprint process to identify improvements for the next cycle.
+### 5.2 Tech Stack
 
-### MVP Definition and Scope
-The MVP focuses on the core workflows necessary for a secure Data Management Platform tailored for Drug Discovery Research. The essential features include:
+The selected baseline utilized a robust, modern technology stack tailored for rapid prototyping and global state management:
+
+| Component | Choice | Rationale |
+| :--- | :--- | :--- |
+| **Backend** | Django + DRF | Rapid development, built-in ORM and auth |
+| **Authentication** | Knox Token | Stateless, per-token revocation |
+| **Frontend** | React + Redux | SPA, global state management |
+| **Database** | SQLite | Zero-config, sufficient for prototype |
+| **Static files** | WhiteNoise | No separate web server needed |
+
+### 5.3 Core Feature Overview
+
+By successfully building the baseline codebase, V1 immediately inherited a suite of core capabilities.
 
 1.  **Authentication & Authorization:**
     *   Secure user registration and login.
@@ -28,48 +36,7 @@ The MVP focuses on the core workflows necessary for a secure Data Management Pla
     *   Capability for users to review datasets, leave comments, and rate them.
     *   Notification system to alert authors when their datasets are reviewed or downloaded.
 
-### Sprint Breakdown
-*   **Sprint 1: Foundation and Authentication**
-    *   Set up the core repository and environment.
-    *   Design the database schema mapping to standard relational models.
-    *   Configure the web framework (Django + React).
-    *   Implement user authentication and define basic models (`User`, `Organization`).
-*   **Sprint 2: Data Management and Storage**
-    *   Implement Django models and REST endpoints for `DataSet`, `File`, `Folder`, and `TagDataset`.
-    *   Develop the threaded backend process for handling multi-part file uploads and `.zip` archiving.
-    *   Build the React frontend UI for the data upload form (`DataUploadForm.js`).
-*   **Sprint 3: Social Features and Refinement**
-    *   Implement the `Review`, `Conversation`, and `Notification` models.
-    *   Develop the frontend interfaces for searching, browsing, and downloading datasets.
-    *   Establish Redux state management for frontend data flows.
-    *   Comprehensive testing (Jest for frontend, Django Test Framework for backend) and initial deployment.
-
----
-
-## 5.2 Tech Stack Justification
-
-While the initial system specification suggested a NoSQL database (MongoDB) due to its flexible schema, the actual implemented tech stack relies on a robust relational architecture combined with a modern JavaScript frontend.
-
-### 1. Backend: Python & Django
-*   **Framework Choice:** Django was selected over micro-frameworks like Flask due to its "batteries-included" philosophy. It provides an out-of-the-box admin interface, robust Object-Relational Mapping (ORM), and built-in security features against common vulnerabilities (SQL injection, XSS, CSRF).
-*   **REST Architecture:** The Django REST Framework (DRF) is utilized to expose backend models as RESTful APIs. DRF's `ModelViewSet` and robust serialization make it highly efficient for serving complex, nested JSON data to the frontend.
-
-### 2. Frontend: JavaScript, React.js, and Redux
-*   **UI Library:** React allows for the creation of dynamic, Single Page Applications (SPAs). This provides researchers with a fast, seamless browsing experience. Complex UIs, like the drag-and-drop file uploader, are easily managed through React's component-based architecture.
-*   **State Management:** Redux (via `react-redux` and `@reduxjs/toolkit`) is used to manage the global application state. This is crucial for handling asynchronous actions like file uploads, user authentication tokens, and maintaining the shopping cart state for dataset downloads.
-*   **Build Tools:** Webpack and Babel are configured to bundle the React application and transpile modern JavaScript, outputting the static assets directly to Django's static files directory.
-
-### 3. Database: SQLite (Development) / PostgreSQL (Production)
-*   **Deviation from Specification:** The initial specification recommended MongoDB. However, analysis of the required features revealed highly interconnected data entities. For example, a `Review` links a `User` to a `DataSet`, which in turn belongs to a `Folder` and is associated with multiple `Organizations` and `Tags`.
-*   **Relational Advantage:** Relational databases (RDBMS) are inherently better suited for this heavily interconnected structure, ensuring data integrity through foreign keys and ACID compliance. The system utilizes SQLite for local development simplicity and is designed to seamlessly transition to PostgreSQL for production to handle complex queries and concurrent transactions efficiently.
-
-### 4. Testing Frameworks
-*   **Backend:** The standard Django testing framework is employed for unit testing views, models, and API endpoints.
-*   **Frontend:** Jest and React Testing Library are utilized for behavioral testing of React components, ensuring UI reliability.
-
----
-
-## 5.3 API & Endpoint Design
+#### API & Endpoint Design
 
 The application uses a comprehensive RESTful API architecture. Core workflows are separated into intuitive API resources managed by Django ViewSets.
 
@@ -145,11 +112,11 @@ sequenceDiagram
 
 ---
 
-## 5.4 MVP Code Implementation: Core Snippets
+#### Code Implementation: Core Snippets
 
 The following snippets highlight the critical logic implementing the DataDock architecture, spanning database schema definition, complex API request handling, and frontend state management.
 
-### 5.4.1 Backend Models: DataSet and Organization structure
+##### Backend Models: DataSet and Organization structure
 The `models.py` defines the core data structure. Notice the `ManyToManyField` for organizations and the helper methods for locating the physical files on disk.
 
 ```python
@@ -186,7 +153,7 @@ class File(models.Model):
     file_name = models.TextField(db_column="file_name", blank=False, null=False, unique=False)
 ```
 
-### 5.4.2 API Logic: Asynchronous File Processing
+##### API Logic: Asynchronous File Processing
 To prevent UI freezing during large data uploads, the Django viewset processes metadata synchronously and delegates I/O bound file operations to a background thread.
 
 ```python
@@ -246,7 +213,7 @@ def process_files(file_data_list, dataset_path, dataset_zip_path):
     shutil.rmtree(dataset_path)
 ```
 
-### 5.4.3 Frontend: React Redux Actions
+##### Frontend: React Redux Actions
 The React frontend uses Axios to interface with the backend API, utilizing Redux actions to maintain a predictable state.
 
 ```javascript
@@ -280,7 +247,7 @@ export const getPublicDatasets = () => (dispatch) => {
 };
 ```
 
-### 5.4.4 Frontend: Data Upload UI Component
+##### Frontend: Data Upload UI Component
 The `DataUploadForm` utilizes `react-dropzone` to provide a modern drag-and-drop interface.
 
 ```javascript
@@ -329,3 +296,20 @@ const DataUploadForm = ({ addDataset, auth }) => {
 
 export default connect(mapStateToProps, { addDataset })(DataUploadForm);
 ```
+
+### 5.4 Linux Server Hosting and Network Configurations
+
+Once the architectural dependencies were mapped and the build process was stabilized, the next step was deploying V1 to a remote Linux server for collaborative testing. To ensure the submission scripts executed properly and the required directories were accessible, `+WantGPUHomeMounted = true` was added to all environment configurations.
+
+During this phase, we encountered significant networking limitations. By design, the baseline development server was configured to bind exclusively to the local loopback interface (`127.0.0.1` / `localhost`). As a result, while the application ran flawlessly on the server itself, it remained entirely invisible and inaccessible from external network requests.
+
+To bypass this hardcoded restriction without restructuring the underlying security configurations for a simple prototype test, we utilized `ngrok`. By implementing port forwarding via `ngrok`, we successfully established a secure HTTP tunnel, exposing the locally hosted server to the public internet and allowing our team and initial testers to access the platform remotely.
+
+### 5.5 Limitations of V1 — Motivating the First Evaluation Round
+
+While the DataDock baseline provided a massive head start, V1 as a forked platform had easily identifiable functional gaps tailored strictly to its original context. For our specific use case, these limitations included:
+* **Insufficient Organization Permissions:** The permission granularity was too coarse to handle complex, real-world laboratory hierarchies.
+* **No Data Preview:** Users had to download datasets entirely just to view their contents, causing massive friction in the research workflow.
+* **Coarse File Management:** The system lacked nuanced tools for managing files dynamically once they were uploaded.
+
+These exact limitations underscore the necessity of our methodology. With V1 successfully running and remotely accessible via our Linux/ngrok setup, the immediate next step is to formally transition into the evaluation phase. We now need to observe how actual users interact with the platform to confirm these hypotheses, identify unforeseen friction points, and prioritize the development backlog for V2.
