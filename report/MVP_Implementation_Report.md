@@ -2,17 +2,15 @@
 *Branch: `main`, commit: `e36879a`*
 
 ### 5.1 DataDock as the Starting Point
-To accelerate development and build upon proven, open-source foundations, the baseline version for our MVP implementation was derived from a published research project called DataDock. As discussed in our literature review, DataDock is an open-source data hub built specifically for researchers and data scientists to securely perform CRUD operations on datasets (Whalen & Valafar, 2024; arXiv:2406.16880).
+To accelerate development and build upon proven, open-source foundations, the baseline version for our MVP implementation was derived from a published research project called DataDock. We will introduce DataDock not just as an app, but as the specific published codebase (arXiv:2406.16880) identified in our literature review. DataDock is an open-source data hub built specifically for researchers and data scientists to securely perform CRUD operations on datasets (Whalen & Valafar, 2024; arXiv:2406.16880).
 
 **Reasons for Selection:** We selected DataDock as our starting point due to its comprehensive feature coverage (handling complex workflows like multipart file uploads, social review aspects, and dataset grouping), its strong tech stack alignment (Django backend with React frontend), and its permissive open-source license.
 
-**Application Analysis and Adaptation:** Before deployment, we conducted a thorough analysis of the application's structure to understand how its various modules (Accounts, Data, Social, Organizations) were interconnected. We traced the data flow from the React/Redux frontend state management down to the Django ORM to ascertain what needed to be done to ensure the application ran properly as desired for our specific use case.
-
-**Hosting Challenges and Solutions:** As part of our steps to ensure proper execution and accessibility, we initially attempted to host the application on a dedicated Linux server. However, we encountered significant networking issues; by design, the application’s development server and static asset serving were strictly bound and not visible externally except from the local server instance (`localhost`). To bypass these strict internal binding configurations and expose the platform securely to external stakeholders for testing, we utilized `ngrok` for secure port forwarding. This allowed us to quickly tunnel traffic to the locally bound server without needing to overhaul the deployment architecture during the prototyping phase.
+**Application Analysis and Adaptation:** Before deployment, we conducted a thorough analysis phase. We audited the repository and analyzed how the frontend (React) and backend (Django) connected. This process allowed us to map out the necessary steps to transition it from a static research artifact into a functional, running platform.
 
 ### 5.2 Tech Stack
 
-The underlying technology stack of the V1 baseline provided a solid foundation for rapid prototyping and iterative development.
+The underlying technology stack of the V1 baseline provided a solid foundation. We utilized this specific stack because it aligned well with our rapid prototyping and development goals, providing essential components like an ORM, a powerful frontend library, and robust authentication right out of the box.
 
 | Component | Choice | Rationale |
 |-----------|--------|-----------|
@@ -24,7 +22,7 @@ The underlying technology stack of the V1 baseline provided a solid foundation f
 
 ### 5.3 Core Feature Overview
 
-The V1 platform encompasses a robust set of features to facilitate research data management.
+Based on our initial analysis, the V1 platform encompasses a robust set of features to facilitate research data management. These features interconnect to form the baseline system, handling everything from secure user access to data visibility and sharing.
 
 *   **User Authentication:** Secure registration and login flows utilizing Knox tokens.
 *   **Dataset CRUD & Visibility:** Researchers can Create, Read, Update, and Delete datasets. Datasets support a three-tier visibility permission model: fully public, private to the author, or shared selectively with registered organizations.
@@ -65,13 +63,19 @@ def create(self, request):
     return Response(self.get_serializer(dataSet).data)
 ```
 
-### 5.4 Limitations of V1 — Motivating the First Evaluation Round
+### 5.4 Hosting and Server Configuration
+
+As part of our steps to ensure proper execution and accessibility, we initially attempted to host the application on a dedicated Linux server. However, we encountered significant networking issues: by design, the application’s development server and static asset serving were strictly bound and not visible externally except from the local server instance (`localhost`).
+
+To bypass these strict internal binding configurations and expose the platform securely to external stakeholders for testing, we diagnosed the local loopback issue and implemented port forwarding using `ngrok`. This allowed us to quickly tunnel traffic to the locally bound server, successfully exposing the application to the internet for testing without needing to overhaul the deployment architecture during the prototyping phase.
+
+### 5.5 Limitations of V1 — Motivating the First Evaluation Round
 
 While the V1 forked baseline provided a massive head start, it had several identifiable gaps that misaligned with a fully polished production system:
 1.  **Insufficient Organization Permission Granularity:** The organization model was basic. It lacked granular roles (e.g., Organization Admin vs. Member) for fine-tuned access control.
 2.  **No Data Preview:** Users were forced to download entire `.zip` archives just to see the contents or structure of the data, severely hampering usability.
 3.  **Coarse File Management:** Inside a dataset, individual file manipulation (deleting or replacing a single file without re-uploading the entire dataset) was not supported.
 
-**This is precisely why user feedback was needed to confirm and prioritize next steps.** Before investing heavily in refactoring these gaps, we required validation from actual researchers to understand which of these limitations were critical blockers and which were minor inconveniences.
+These specific gaps made it imperative to gather real-world user feedback to prioritize development. Before investing heavily in refactoring, we needed validation from actual researchers to understand which of these limitations were critical blockers and which were minor inconveniences.
 
-> Narrative thread 2 formally opens: V1 is running — now we need to hear from users.
+> V1 is running, securely hosted via ngrok—now we need to hear from the users.
