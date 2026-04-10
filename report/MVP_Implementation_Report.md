@@ -1,46 +1,37 @@
 ## 5. V1 — Baseline Platform
-*Branch: `main`, commit: `e36879a`*
+*(Branch: `main`, commit: `e36879a`)*
 
 ### 5.1 DataDock as the Starting Point
-To accelerate development and build upon proven, open-source foundations, the baseline version for our MVP implementation was derived from a published research project called DataDock. As discussed in our literature review, DataDock is an open-source data hub built specifically for researchers and data scientists to securely perform CRUD operations on datasets (Whalen & Valafar, 2024; arXiv:2406.16880).
 
-**Reasons for Selection:** We selected DataDock as our starting point due to its comprehensive feature coverage (handling complex workflows like multipart file uploads, social review aspects, and dataset grouping), its strong tech stack alignment (Django backend with React frontend), and its permissive open-source license.
+To accelerate development and build upon proven, open-source foundations, the baseline version for our MVP implementation was derived directly from the DataDock project, a specific published codebase identified in our literature review (Whalen & Valafar, 2024; arXiv:2406.16880). DataDock was originally designed as a secure data hub for researchers and data scientists.
 
-**Application Analysis and Adaptation:** Before deployment, we conducted a thorough analysis of the application's structure to understand how its various modules (Accounts, Data, Social, Organizations) were interconnected. We traced the data flow from the React/Redux frontend state management down to the Django ORM to ascertain what needed to be done to ensure the application ran properly as desired for our specific use case.
-
-**Hosting Challenges and Solutions:** As part of our steps to ensure proper execution and accessibility, we initially attempted to host the application on a dedicated Linux server. However, we encountered significant networking issues; by design, the application’s development server and static asset serving were strictly bound and not visible externally except from the local server instance (`localhost`). To bypass these strict internal binding configurations and expose the platform securely to external stakeholders for testing, we utilized `ngrok` for secure port forwarding. This allowed us to quickly tunnel traffic to the locally bound server without needing to overhaul the deployment architecture during the prototyping phase.
+**Analysis Phase and Transition:** Our first crucial step was a comprehensive audit of the repository to transition it from a static research artifact into a functional, running platform. We analyzed the structural architecture to understand precisely how the frontend Single Page Application (built in React) and the backend REST API (built in Django) communicated. By mapping the Redux state management to the Django ORM endpoints, we were able to document the data flow, identify dependencies, and outline the necessary configuration steps required to spin up and stabilize the application environment for our specific use case.
 
 ### 5.2 Tech Stack
 
-The underlying technology stack of the V1 baseline provided a solid foundation for rapid prototyping and iterative development.
+The underlying technology stack of the V1 baseline aligned exceptionally well with our goals for rapid prototyping and iterative development. The combination of a robust, "batteries-included" backend with a modern, reactive frontend allowed us to quickly establish a working prototype without writing boilerplate architecture.
 
 | Component | Choice | Rationale |
 |-----------|--------|-----------|
-| Backend | Django + DRF | Rapid development, built-in ORM for complex relational queries, and an extensible architecture. |
-| Authentication | Knox Token | Provides stateless, per-token revocation, ensuring secure API access from the React frontend. |
-| Frontend | React + Redux | Enables a dynamic Single Page Application (SPA) experience with robust global state management. |
-| Database | SQLite | Zero-configuration database, highly portable, and sufficient for the initial prototype phase. |
-| Static files | WhiteNoise | Allows Django to serve compiled React assets efficiently without requiring a separate web server. |
+| Backend | Django + DRF | Rapid development, built-in ORM for complex queries, and secure API handling. |
+| Authentication | Knox Token | Provides stateless, per-token revocation, ensuring secure API access. |
+| Frontend | React + Redux | Enables a dynamic SPA experience with robust global state management. |
+| Database | SQLite | Zero-configuration database, highly portable, and sufficient for prototype testing. |
+| Static files | WhiteNoise | Allows Django to serve compiled React assets efficiently without a separate web server. |
 
 ### 5.3 Core Feature Overview
 
-The V1 platform encompasses a robust set of features to facilitate research data management.
+Through our initial analysis, we mapped out how the core features interconnect to form the baseline system's functionality. The V1 platform encompasses a robust set of tightly coupled workflows:
 
-*   **User Authentication:** Secure registration and login flows utilizing Knox tokens.
-*   **Dataset CRUD & Visibility:** Researchers can Create, Read, Update, and Delete datasets. Datasets support a three-tier visibility permission model: fully public, private to the author, or shared selectively with registered organizations.
-*   **Organizations:** Basic functionality allowing users to form groups, facilitating private sharing of research data among trusted peers.
-*   **Review & Rating System:** Users can assess data validity by leaving comments and star ratings on datasets.
-*   **Cart & Download System:** Users can add multiple datasets to a cart and initiate a batch ZIP download.
-*   **Notification System:** Alerts authors when their datasets receive reviews, comments, or are downloaded.
-
-#### API Structure
-The platform utilizes a RESTful API structure via Django ViewSets. Key endpoints include:
-*   `/api/datasets/` & `/api/public_datasets/`: For dataset creation, retrieval, and public browsing.
-*   `/api/organizations/`: For managing organizational memberships.
-*   `/api/reviews/` & `/api/notifications_review/`: For the social and peer-review features.
+*   **User Authentication:** Secure registration and login flows utilizing Knox tokens to authenticate subsequent API requests.
+*   **Dataset CRUD & Visibility:** Researchers can Create, Read, Update, and Delete datasets. The system uses a three-tier visibility permission model: fully public, private, or shared selectively with registered organizations.
+*   **Organizations:** Basic functionality allowing users to form groups, which securely intersect with the dataset visibility rules.
+*   **Review & Rating System:** Users can assess data validity by leaving comments and star ratings on datasets, integrating social feedback directly into the file management UI.
+*   **Cart & Batch Download System:** A Redux-managed cart state allows users to queue multiple datasets and initiate asynchronous ZIP downloads.
+*   **Notification System:** Automatically alerts authors when their datasets receive reviews or downloads.
 
 #### Key Code Snippet: File Upload & Threading
-A critical aspect of the V1 platform is how it handles large dataset uploads. To prevent UI freezing, the Django backend saves metadata synchronously but processes actual file writing and `.zip` archiving asynchronously in a background thread.
+During our audit, we identified the dataset upload mechanism as a critical, interconnected feature. To prevent UI freezing during large data transfers, the Django backend saves metadata synchronously but processes actual file writing and `.zip` archiving asynchronously in a background thread.
 
 ```python
 # Asynchronous File Processing (Backend)
@@ -65,13 +56,22 @@ def create(self, request):
     return Response(self.get_serializer(dataSet).data)
 ```
 
-### 5.4 Limitations of V1 — Motivating the First Evaluation Round
+### 5.4 Hosting and Server Configuration
 
-While the V1 forked baseline provided a massive head start, it had several identifiable gaps that misaligned with a fully polished production system:
-1.  **Insufficient Organization Permission Granularity:** The organization model was basic. It lacked granular roles (e.g., Organization Admin vs. Member) for fine-tuned access control.
-2.  **No Data Preview:** Users were forced to download entire `.zip` archives just to see the contents or structure of the data, severely hampering usability.
-3.  **Coarse File Management:** Inside a dataset, individual file manipulation (deleting or replacing a single file without re-uploading the entire dataset) was not supported.
+With the application audited and running locally, our next major milestone was deployment. We hosted the application on a dedicated Linux server to facilitate remote testing.
 
-**This is precisely why user feedback was needed to confirm and prioritize next steps.** Before investing heavily in refactoring these gaps, we required validation from actual researchers to understand which of these limitations were critical blockers and which were minor inconveniences.
+However, during this deployment phase, we encountered a significant network configuration problem. By design, the development server and the WhiteNoise static asset pipeline were binding strictly to the local loopback interface (`127.0.0.1` or `localhost`). This security restriction meant the application was entirely inaccessible externally over the internet.
 
-> Narrative thread 2 formally opens: V1 is running — now we need to hear from users.
+After diagnosing the root cause of the binding issue, we implemented port forwarding using `ngrok`. By creating a secure tunnel, `ngrok` bypassed the strict local binding restrictions and safely exposed the internally running application to the public internet. This solution allowed us to distribute access links for testing without requiring a complex reverse-proxy (e.g., Nginx) or DNS overhaul during the rapid prototyping phase.
+
+### 5.5 Limitations of V1 — Motivating the First Evaluation Round
+
+While the V1 forked baseline provided a massive head start and a functional platform, our analysis identified several gaps that misaligned with a polished production system:
+
+1.  **Insufficient Organization Permission Granularity:** The organization model lacked granular roles (e.g., Admin vs. Member), offering only coarse access control.
+2.  **No Data Preview:** Users were forced to download entire `.zip` archives just to inspect the structure or contents of the data, severely hampering usability.
+3.  **Coarse File Management:** Inside a dataset, individual file manipulation (e.g., deleting or replacing a single file without re-uploading the entire dataset) was not supported.
+
+These specific gaps made it imperative to gather real-world user feedback to prioritize further development. We needed validation from actual researchers to understand which of these limitations were critical blockers and which were minor inconveniences.
+
+> V1 is running, securely hosted via ngrok—now we need to hear from the users.
