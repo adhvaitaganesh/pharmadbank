@@ -206,3 +206,40 @@ These define system attributes such as performance, security, and usability.
 *   **Audit Logs:** Implement comprehensive audit logging for all critical system actions. This should include tracking who accessed what data, when it was accessed, and any modifications made. This is crucial for compliance and security in clinical research environments.
 *   **External Database Integration:** Plan for API integrations with external research databases (e.g., public drug repositories, genomic databases) to enrich the platform's metadata and allow cross-referencing of information seamlessly within the UI.
 *   **Versioning and Edit History:** Implement a robust, Git-like versioning system for datasets, allowing researchers to track changes over time and revert to previous versions if necessary, ensuring data provenance is never lost.
+
+## 5. V1 — Baseline Platform
+
+### 5.1 DataDock as the Starting Point
+DataDock is not merely an abstract conceptual application; it is the specific published codebase (arXiv:2406.16880) identified during the literature review as a highly suitable foundation. During the initial analysis phase, a comprehensive audit of the repository was conducted. This involved analyzing how the React frontend seamlessly integrated with the Django backend—specifically noting the architectural choice of serving compiled React static assets directly through Django rather than running a distinct Node.js server in production. The audit mapped out the necessary steps to transition DataDock from a static research artifact into a functional, running platform, ensuring all dependencies (`pipenv`, `npm`) were managed and the local environment accurately mirrored the intended deployment state.
+
+### 5.2 Tech Stack
+The baseline system leverages a robust, modern technology stack:
+*   **Backend:** Django REST Framework (Python 3.10)
+*   **Frontend:** React (JavaScript, bundled via Webpack)
+*   **Database:** SQLite (for rapid local prototyping and baseline deployment)
+*   **Asset Management:** WhiteNoise (for serving static frontend files through Django)
+
+This specific stack was selected because it aligns perfectly with the goals of rapid prototyping and agile development. Django's "batteries-included" philosophy provided immediate out-of-the-box solutions for user authentication and ORM mapping, while React allowed for a dynamic, responsive user interface. Using SQLite eliminated database provisioning overhead during the initial V1 deployment, accelerating the time to a testable artifact.
+
+### 5.3 Core Feature Overview
+The V1 baseline encompasses several core features that interconnect to form the foundation of the data management platform.
+*   **Authentication & User Management:** Secure login and registration.
+*   **Dataset CRUD Operations:** Researchers can securely upload, read, update metadata for, and delete datasets.
+*   **Visibility Permissions:** Fine-grained control over dataset visibility (locked vs. unlocked state).
+*   **Batch Downloads (Cart):** The ability to queue multiple datasets for bulk downloading.
+*   **Social Validation:** Rating and reviewing datasets via threads and comments.
+
+Through the lens of the initial system analysis, these features act cohesively: a user authenticates, navigates the React UI to upload data via an API, the Django backend creates the necessary database records, and WhiteNoise serves the updated UI to other users who can then discover and request that data based on the established visibility permissions.
+
+### 5.4 Hosting and Server Configuration
+To transition the system from local development to a testable environment, V1 was deployed on a Linux server. A critical deployment challenge encountered was network configuration: by default design, the Django development server was binding only to the local loopback address (`127.0.0.1` or `localhost`), making the application completely inaccessible externally to stakeholders.
+
+To diagnose and resolve this issue rapidly without complex DNS or reverse-proxy setups (like Nginx/Apache) for the V1 prototype, a secure tunneling solution was implemented using **ngrok**. By running ngrok and forwarding the local port (e.g., `8000`), the application was successfully exposed to the internet via a secure, temporary HTTPS URL, allowing for immediate external access and testing.
+
+### 5.5 Limitations of V1 — Motivating the First Evaluation Round
+While V1 successfully establishes the baseline platform, the initial audit identified several critical gaps:
+*   **Insufficient Organization Permission Granularity:** While organizations exist, the permission models within them are overly simplistic and lack nuanced roles (e.g., distinguishing between an organization 'viewer' and 'contributor').
+*   **Lack of Data Previews:** Users cannot preview file contents (like CSV columns or image thumbnails) before requesting access or downloading, leading to inefficient discovery.
+*   **Coarse File Management:** The folder structures and metadata tagging are relatively basic and may struggle to scale with massive, complex datasets.
+
+These specific gaps make it imperative to move beyond theoretical analysis and gather real-world user feedback to prioritize future development. V1 is running, securely hosted via ngrok—now we need to hear from the users.
