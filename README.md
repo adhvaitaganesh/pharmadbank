@@ -1,48 +1,5 @@
 # What is it ❓
-DataDock is a web file system designed for use by researchers and data scientists. It is essentially a file transfer system with a social media and market aspect. Researchers or data scientists can perform CRUD operations on data, and can also assess the validity of data by creating posts on data sets or ML models or by rating data sets or ML models. 
-
-### Feel free to help out!
-This is an open source project. Feel free to fork, make changes, request changes, all that. We are trying to provide a comprehensive alternative to resources with much more funding, so the more the merrier!
-
-### Presentation
-We are happy to announce that the service will be presented at
-
-`The 20th International Conference on Data Science
-    (ICDATA'24: July 22-25, 2024; Las Vegas, USA`
-
-### Video 📹
-[Here](https://youtu.be/Wg1UT6Xwy24) is a short video describing how to use the system. We will update this tutorial as more features are added over time.
-
-### NOTE: Name Change
-Please note that DataDock used to be called Delta. We are working on renaming the files accordingly. At the moment, there may be some directories / files with Delta in the name.
-
-# Screenshots
-Below are some images of the service.
-
-### Cart
-![Example image of cart.](conference_paper/figures/cart.png)
-
-### Conversations
-![Example image of conversations.](conference_paper/figures/conversation_start.png)
-![Example image of conversations.](conference_paper/figures/convo.png)
-![Example image of conversations.](conference_paper/figures/conversation_reply.png)
-
-### Organizations
-![Example image of organizations.](conference_paper/figures//organization.png)
-
-### Reviews
-![Example image of reviews.](conference_paper/figures/review.png)
-![Example image of reviews.](conference_paper/figures/review_comment.png)
-
-### Notification
-![Example image of notifications.](conference_paper/figures/notification_message.png)
-![Example image of notifications.](conference_paper/figures/notification_review.png)
-
-### Search
-![Example image of search.](conference_paper/figures/search.png)
-
-### Upload
-![Example image of upload.](conference_paper/figures/upload_page.png)
+PharmaDBank is a web-based platform for structured and collaborative research data management in academic environments.. Researchers or data scientists can perform CRUD operations on data, and can also assess the validity of data by creating posts on data sets or ML models or by rating data sets or ML models. 
 
 # Running 🏃
 Note the following instructions are designed for *nix machines.
@@ -140,8 +97,7 @@ From there the terminal will show what tests are found, what pass, and what warn
 
 Note that when making a behavioral test with Jest the JS file must have a `.test.js` extension. 
 
-### How to cite
-If you use this service and would like to cite it (please do!), you can use the following BibTex:
+
 `@misc{whalen2024datadockopensourcedata,
       title={DataDock: An Open Source Data Hub for Research}, 
       author={Lexington Whalen and Homayoun Valafar},
@@ -152,6 +108,4 @@ If you use this service and would like to cite it (please do!), you can use the 
       url={https://arxiv.org/abs/2406.16880}, 
 }`
 
-### Support ❤️
-- DataDock is an ambitious project. As such, there are many things that can be added. Please feel free to open an issue for something you think may be useful. This is intended to be a community project.
 
