@@ -5,9 +5,16 @@ PharmaDBank is a web-based platform for structured and collaborative research da
 Note the following instructions are designed for *nix machines.
 
 To run, first clone the repository by running:
-`git clone https://github.com/lxaw/DataDock` 
+`https://github.com/adhvaitaganesh/pharmadbank.git`
+
+Then, switch to the iteratively developed version by switching to branch testmerge by running
+`git fetch origin testmerge` & `git checkout testmerge`
 
 Then cd into `DataDock`. 
+
+create `.env` file and add `SECTRET_KEY=xxx` 
+
+Replace xxx with your secret key
 
 You should have installed `pipenv`. Install following `https://pipenv.pypa.io/en/latest/install/` or some other resource online.
 
